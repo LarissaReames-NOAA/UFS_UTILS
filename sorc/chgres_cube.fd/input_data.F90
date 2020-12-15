@@ -32,6 +32,7 @@
                                     sfc_files_input_grid, &
                                     atm_files_input_grid, &
                                     grib2_file_input_grid, &
+                                    wrf_file_input_grid, &
                                     atm_core_files_input_grid, &
                                     atm_tracer_files_input_grid, &
                                     convert_nst, &
@@ -208,6 +209,14 @@
  elseif (trim(input_type) == "grib2") then
 
    call read_input_atm_grib2_file(localpet)
+   
+!-------------------------------------------------------------------------------
+! Read data from a WRF netCDF output file
+!-------------------------------------------------------------------------------
+
+ elseif (trim(input_type) == "wrf") then
+ 
+   call read_input_atm_wrf_file(localpet)
 
  endif
 
@@ -2659,9 +2668,7 @@
 
  if (localpet==0) print*, "- NUMBER OF TRACERS TO BE PROCESSED = ", num_tracers
 
-!---------------------------------------------------------------------------
-! Initialize esmf atmospheric fields.
-!---------------------------------------------------------------------------
+		
 
  call init_atm_esmf_fields
 
@@ -2979,6 +2986,325 @@ else
  endif
  
  end subroutine read_input_atm_grib2_file
+
+!---------------------------------------------------------------------------
+! Read input grid wrf netCDF history files.
+!---------------------------------------------------------------------------
+
+subroutine read_input_atm_wrf_file(localpet)
+
+  use mpi
+
+ implicit none
+
+ integer, intent(in)             :: localpet
+
+ character(len=500)              :: the_file
+ integer, parameter              :: ntrac_max_wrf=15
+ character(len=20)				 ::  trac_names_nc(ntrac_max_wrf), & 
+                                     trac_names_vmap(ntrac_max_wrf), &
+                                     tracers_default(ntrac_max_wrf), &
+                                     tracers_input_nc(ntrac_max_wrf), &
+                                     tracers_input_vmap(ntrac_max_wrf), &
+                                     vname, method, tmpstr, lvl_str
+
+ integer                         :: error, ncid, rc
+ integer                         :: id_dim
+ integer                         :: id_var, i, n, k
+ integer                         ::  varnum
+ 
+ real(esmf_kind_r4)              :: value
+ real(esmf_kind_r8), parameter	 :: rocp = 0.286
+ 
+
+ real(esmf_kind_r8), allocatable :: dummy_2d(:,:), cosa_2d(:,:), sina_2d(:,:)
+ real(esmf_kind_r8), allocatable :: dummy_3d(:,:,:), tmp_3d(:,:,:), p_3d(:,:,:),&
+ 									dummy_3d2(:,:,:), u_tmp_3d(:,:,:), v_tmp_3d(:,:,:), &
+ 									u_tmp_stag_3d(:,:,:), v_tmp_stag_3d(:,:,:), &
+ 									dummy_3d_stag(:,:,:)
+ the_file = trim(data_dir_input_grid) // "/" // trim(wrf_file_input_grid)
+ if (localpet == 0) then 
+     print*,"- READ INPUT ATMOS DATA FROM WRF OUTPUT FILES"
+     error=nf90_open(trim(the_file),nf90_nowrite,ncid)
+     call netcdf_err(error, 'opening: '//trim(the_file) )
+
+     error=nf90_inq_dimid(ncid, 'bottom_top', id_dim)
+     call netcdf_err(error, 'reading bottom_top id' )
+     error=nf90_inquire_dimension(ncid,id_dim,len=lev_input)
+     call netcdf_err(error, 'reading bottom_top value' )
+
+     error=nf90_inq_dimid(ncid, 'bottom_top_stag', id_dim)
+     call netcdf_err(error, 'reading bottom_top_stag id' )
+     error=nf90_inquire_dimension(ncid,id_dim,len=levp1_input)
+     call netcdf_err(error, 'reading bottom_top_stag value' )
+ endif
+ 
+ call MPI_BARRIER(MPI_COMM_WORLD, error)
+ call MPI_BCAST(lev_input,1,MPI_INT,0,MPI_COMM_WORLD,error)
+ call MPI_BCAST(levp1_input,1,MPI_INT,0,MPI_COMM_WORLD,error)
+
+ trac_names_nc = (/"QVAPOR","QCLOUD","O3MR","QICE","QRAIN","QSNOW","QGRAUP","QHAIL",& 
+ 					"CLDFRA","QNICE","QNDROP","QNRAIN","QNSNOW","QNCCN","TKE"/)
+ trac_names_vmap = (/"sphum", "liq_wat","o3mr","ice_wat", &
+                      "rainwat", "snowwat", "graupel","hail", "cld_amt", "ice_nc", &
+                      "water_nc","rain_nc","liq_aero","ice_aero", &
+                      "sgs_tke"/)
+ tracers_default = (/"sphum", "liq_wat","o3mr","ice_wat", &
+                      "rainwat", "snowwat", "graupel", "hail","cld_amt", "ice_nc", &
+                      "water_nc","rain_nc","liq_aero","ice_aero", &
+                      "sgs_tke"/)	
+ lvl_str = "eta"                  
+ print*, "Data has ", lev_input, " vertical levels"
+ if (localpet == 0) then
+   print*,"- READ ATMOSPHERIC DATA FROM: ", trim(the_file)
+   error=nf90_open(trim(the_file),nf90_nowrite,ncid)
+   call netcdf_err(error, 'opening: '//trim(the_file) )
+ endif
+    									
+ if (localpet == 0) print*,"- COUNT NUMBER OF TRACERS TO BE READ IN BASED ON VARMAP TABLE"
+ do n = 1, num_tracers
+	 vname = tracers_input(n)
+ 
+	 i = maxloc(merge(1.,0.,trac_names_vmap == vname),dim=1)
+
+	 tracers_input_nc(n)=trac_names_nc(i)
+	 tracers_input_vmap(n)=trac_names_vmap(i)
+	 tracers(n)=tracers_default(i)
+	 !tracers_input(n) = tracers_default(i)
+
+ enddo
+
+ if (localpet==0) print*, "- NUMBER OF TRACERS TO BE PROCESSED = ", num_tracers
+ 
+ !allocate(tracers_input_grid(num_tracers))
+ !print*,'- FILE HAS ', num_tracers, ' TRACERS.'
+ !print*, tracers_input_nc(1:num_tracers)
+ !num_tracers_input = num_tracers
+
+!---------------------------------------------------------------------------
+! Initialize esmf atmospheric fields.
+!---------------------------------------------------------------------------
+
+ call init_atm_esmf_fields
+
+ if (localpet == 0) then
+   allocate(dummy_2d(i_input,j_input))
+   allocate(dummy_3d(i_input,j_input,lev_input))
+   allocate(dummy_3d2(i_input,j_input,lev_input))
+   allocate(dummy_3d_stag(i_input,j_input,levp1_input))
+   allocate(tmp_3d(i_input,j_input,lev_input))
+   allocate(p_3d(i_input,j_input,lev_input))
+ else
+   allocate(dummy_2d(0,0))
+   allocate(dummy_3d(0,0,0))
+   allocate(dummy_3d2(0,0,0))
+   allocate(p_3d(0,0,0))
+ endif
+
+ if (localpet == 0) then
+   print*,"- READ VERTICAL VELOCITY."
+   error=nf90_inq_varid(ncid, 'W', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, dummy_3d_stag)
+   call netcdf_err(error, 'reading field' )
+   
+   ! Un-stagger vertical winds
+   dummy_3d(:,:,:) = 0.5 * (dummy_3d_stag(:,:,2:) + dummy_3d_stag(:,:,1:lev_input))
+   
+   print*, 'min, max w ', minval(dummy_3d), maxval(dummy_3d)
+   
+   deallocate(dummy_3d_stag)
+ endif
+
+   print*,"- CALL FieldScatter FOR INPUT GRID VERTICAL VELOCITY."
+   call ESMF_FieldScatter(dzdt_input_grid, dummy_3d, rootpet=0, tile=1, rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__line__,file=__file__)) &
+      call error_handler("IN FieldScatter", rc)
+
+ do n = 1, num_tracers
+	 if ( localpet == 0) print*,"- READ ", trim(tracers_input_nc(n))
+     vname = tracers_input_vmap(n)
+	 call get_var_cond(vname,this_miss_var_method=method, this_miss_var_value=value, &
+						this_field_var_name=tmpstr,loc=varnum)
+	 if (localpet == 0) then
+	   vname = trim(tracers_input_nc(n))
+	   error=nf90_inq_varid(ncid, vname, id_var)
+		 
+	   if (error < 0) then !can't find variable name in file
+	     call handle_grib_error(vname, lvl_str,method,value,varnum,error,var3d=dummy_3d)
+	   else
+	     error=nf90_get_var(ncid, id_var, dummy_3d)
+         call netcdf_err(error, 'reading field' )
+         print*, 'min, max ', trim(vname), minval(dummy_3d), maxval(dummy_3d)
+       endif
+     
+     endif 
+   
+	 print*,"- CALL FieldScatter FOR INPUT GRID TRACER ", trim(tracers(n))
+	 call ESMF_FieldScatter(tracers_input_grid(n), dummy_3d, rootpet=0, tile=1, rc=rc)
+	 if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__line__,file=__file__)) &
+			call error_handler("IN FieldScatter", rc)
+
+ enddo
+ 
+ if (localpet == 0) then
+   print*,"- READ PERTURBATION PRESSURE."
+   error=nf90_inq_varid(ncid, 'P', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, dummy_3d)
+   call netcdf_err(error, 'reading field' )
+   
+    print*,"- READ BASE STATE PRESSURE."
+   error=nf90_inq_varid(ncid, 'PB', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, tmp_3d)
+   call netcdf_err(error, 'reading field' )
+   
+   p_3d = dummy_3d + tmp_3d
+   
+   print*, 'min, max p ', minval(p_3d), maxval(p_3d)
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT PRESSURE."
+ call ESMF_FieldScatter(pres_input_grid, p_3d, rootpet=0, tile=1, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__line__,file=__file__)) &
+		call error_handler("IN FieldScatter", rc)
+ 
+ if (localpet == 0) then
+   print*,"- READ TEMPERATURE."
+   error=nf90_inq_varid(ncid, 'T', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, dummy_3d)
+   call netcdf_err(error, 'reading field' )
+   
+   tmp_3d = dummy_3d + 300.0_esmf_kind_r8
+   print*, 'after read min, max theta1', minval(tmp_3d(:,:,1)), maxval(tmp_3d(:,:,1))
+   dummy_3d = tmp_3d * (p_3d/100000.0) ** (rocp) 
+   print*, 'after read min, max T1', minval(dummy_3d(:,:,1)), maxval(dummy_3d(:,:,1))
+   
+   deallocate(tmp_3d)
+ endif
+
+ deallocate(p_3d)
+ 
+ print*,"- CALL FieldScatter FOR INPUT GRID TEMPERATURE."
+ call ESMF_FieldScatter(temp_input_grid, dummy_3d, rootpet=0, tile=1, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__line__,file=__file__)) &
+		call error_handler("IN FieldScatter", rc)
+		
+	
+	
+	
+ !WRF winds are grid-relative, so they need to be rotated
+ if (localpet == 0) then
+   allocate(cosa_2d(i_input,j_input))
+   allocate(sina_2d(i_input,j_input))
+   allocate(u_tmp_stag_3d(ip1_input,j_input,lev_input))
+   allocate(v_tmp_stag_3d(i_input,jp1_input,lev_input))
+   allocate(u_tmp_3d(i_input,j_input,lev_input))
+   allocate(v_tmp_3d(i_input,j_input,lev_input))
+   
+   print*,"- READ U-WIND."
+   error=nf90_inq_varid(ncid, 'U', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, u_tmp_3d)
+   call netcdf_err(error, 'reading field' )
+   
+   print*,"- READ V-WIND."
+   error=nf90_inq_varid(ncid, 'V', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, v_tmp_3d)
+   call netcdf_err(error, 'reading field' )
+   
+   print*,"- READ COSALPHA"
+   error=nf90_inq_varid(ncid, 'COSALPHA', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, cosa_2d)
+   call netcdf_err(error, 'reading field' )
+   
+   print*,"- READ SINALPHA"
+   error=nf90_inq_varid(ncid, 'SINALPHA', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, sina_2d)
+   call netcdf_err(error, 'reading field' )
+   
+   do k = 1,lev_input
+      !Un-stagger wind speeds
+       u_tmp_3d(:,:,k) = 0.5 * (u_tmp_stag_3d(2:,:,k) + u_tmp_stag_3d(1:i_input,:,k))
+       v_tmp_3d(:,:,k) = 0.5 * (v_tmp_stag_3d(:,2:,k) + v_tmp_stag_3d(:,1:j_input,k))  
+        
+      !Rotate U
+   	   dummy_3d(:,:,k) = u_tmp_3d(:,:,k)*cosa_2d+v_tmp_3d(:,:,k)*sina_2d
+   	      		
+   	  !Rotate V
+   	   dummy_3d2(:,:,k) = v_tmp_3d(:,:,k)*cosa_2d-u_tmp_3d(:,:,k)*sina_2d
+   enddo
+   
+   print*, 'min, max U ', minval(dummy_3d), maxval(dummy_3d)
+   print*, 'min, max V ', minval(dummy_3d2), maxval(dummy_3d2)
+   
+   deallocate(cosa_2d)
+   deallocate(sina_2d)
+   deallocate(u_tmp_3d)
+   deallocate(v_tmp_3d)
+   deallocate(u_tmp_stag_3d)
+   deallocate(v_tmp_stag_3d)
+   
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT GRID U."
+ call ESMF_FieldScatter(u_input_grid, dummy_3d, rootpet=0, tile=1, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__line__,file=__file__)) &
+		call error_handler("IN FieldScatter", rc)
+
+ print*,"- CALL FieldScatter FOR INPUT GRID V."
+ call ESMF_FieldScatter(v_input_grid, dummy_3d2, rootpet=0, tile=1, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__line__,file=__file__)) &
+		call error_handler("IN FieldScatter", rc)
+ deallocate(dummy_3d2)
+
+ 
+ if (localpet == 0) then
+   print*,"- READ SURFACE PRESSURE."
+   error=nf90_inq_varid(ncid, 'PSFC', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, dummy_2d)
+   call netcdf_err(error, 'reading field' )
+
+   print*, 'min, max sfcp ', minval(dummy_2d), maxval(dummy_2d)
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT GRID SURFACE PRESSURE."
+ call ESMF_FieldScatter(ps_input_grid, dummy_2d, rootpet=0, tile=1, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__line__,file=__file__)) &
+		call error_handler("IN FieldScatter", rc)
+
+ if (localpet == 0) then
+   print*,"- READ TERRAIN."
+   error=nf90_inq_varid(ncid, 'HGT', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, dummy_2d)
+   call netcdf_err(error, 'reading field' )
+   print*, 'min, max zh ', minval(dummy_2d), maxval(dummy_2d)
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT GRID TERRAIN."
+ call ESMF_FieldScatter(terrain_input_grid, dummy_2d, rootpet=0, tile=1, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__line__,file=__file__)) &
+		call error_handler("IN FieldScatter", rc)
+
+
+ if (localpet == 0) error = nf90_close(ncid)
+
+ deallocate(dummy_3d, dummy_2d)
+
+!---------------------------------------------------------------------------
+! Convert from 2-d to 3-d cartesian winds.
+!---------------------------------------------------------------------------
+
+ call convert_winds
+
+ end subroutine read_input_atm_wrf_file 
 
 !---------------------------------------------------------------------------
 ! Read input grid surface data from a spectral gfs gaussian sfcio file.

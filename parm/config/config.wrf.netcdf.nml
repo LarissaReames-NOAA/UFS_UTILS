@@ -36,7 +36,7 @@
  input_type="wrf"
  external_model="WRF"
  nsoill_out=9
- !!!thomp_mp_climo_file="herpderp.nc"
+ !!!thomp_mp_climo_file="thompclimo.nc"
  halo_bndy=4
  halo_blend=0
 /

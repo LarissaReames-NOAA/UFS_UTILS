@@ -45,8 +45,8 @@ jobs:
         export ESMF_NETCDF=split
         export ESMF_NETCDF_INCLUDE=/usr/include
         export ESMF_NETCDF_LIBPATH=/usr/x86_64-linux-gnu
-        export ESMF_CXXCOMPILEOPTS="-O1 -g -traceback -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls"
-        export ESMF_F90COMPILEOPTS="-O1 -g -traceback -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls"
+        export ESMF_F90COMPILEOPTS="-g -Wall -Wextra -Wconversion -Wno-unused -Wno-unused-dummy-argument -fbacktrace -fimplicit-none -fcheck=array-temps,bounds,do,mem,recursion -fPIC  -m64 -mcmodel=small -pthread -ffree-line-length-none  -fopenmp -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls"
+        export ESMF_CXXCOMPILEOPTS="-std=c++11 -g -Wall -Wextra -Wno-unused  -fPIC -DESMF_LOWERCASE_SINGLEUNDERSCORE -m64 -mcmodel=small -pthread  -fopenmp -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls"
         make -j2
         make install
 

@@ -45,6 +45,7 @@ jobs:
         export ESMF_NETCDF=split
         export ESMF_NETCDF_INCLUDE=/usr/include
         export ESMF_NETCDF_LIBPATH=/usr/x86_64-linux-gnu
+        export CFLAGS="-O1 -g -ftraceback -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls"
         make -j2
         make install
 
@@ -105,6 +106,7 @@ jobs:
         cd ufs_utils/build/tests/chgres_cube/data
         wget -i files.txt
         cd ../../..
+        export LSAN_OPTIONS=suppressions=~/ufs_utils/LSanSuppress.supp
         ctest --rerun-failed --output-on-failure
         export PATH="/home/runner/.local/bin:$PATH"
         gcovr -r .. --html-details -o test-coverage.html

@@ -1129,7 +1129,7 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
  the_file = trim(data_dir_input_grid) // "/" // write_dyn_file_input_grid
  
  error=nf90_open(trim(the_file),nf90_nowrite,ncid)
- call netcdf_err(error, 'opening: '//trim(thw_file))
+ call netcdf_err(error, 'opening: '//trim(the_file))
  
  error=nf90_get_att(ncid,NF90_GLOBAL,"grid",input_grid_type)
  call netcdf_err(error, 'reading grid type' )
@@ -1296,7 +1296,7 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
 
 	 enddo
    enddo
- elseif (trim(input_grid_type) == "lambert_conformal")
+ elseif (trim(input_grid_type) == "lambert_conformal") then
 
    error=nf90_get_att(ncid,NF90_GLOBAL,"dx",dx)
    call netcdf_err(error, 'reading dx' )   

@@ -1280,21 +1280,21 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
    error=nf90_get_att(ncid,NF90_GLOBAL,"dlon",deltalon)
    call netcdf_err(error, 'reading dx' )  
    do j = clb(2), cub(2)
-	 do i = clb(1), cub(1)
+   do i = clb(1), cub(1)
 
-	   if (i == ip1_input) then
-		 lon_src_ptr(i,j) = longitude_one_tile(i_input,1) +  (0.5_esmf_kind_r8*deltalon)
-	   else
-		 lon_src_ptr(i,j) = longitude_one_tile(i,1) - (0.5_esmf_kind_r8*deltalon)
-	   endif
+     if (i == ip1_input) then
+       lon_src_ptr(i,j) = longitude_one_tile(i_input,1) +  (0.5_esmf_kind_r8*deltalon)
+     else
+       lon_src_ptr(i,j) = longitude_one_tile(i,1) - (0.5_esmf_kind_r8*deltalon)
+     endif
 
-	   if (j == jp1_input) then
-		 lat_src_ptr(i,j) = latitude_one_tile(1,j_input) + (0.5_esmf_kind_r8*deltalon)
-	   else
-		 lat_src_ptr(i,j) = latitude_one_tile(1,j) - (0.5_esmf_kind_r8*deltalon)
-	   endif
+     if (j == jp1_input) then
+       lat_src_ptr(i,j) = latitude_one_tile(1,j_input) + (0.5_esmf_kind_r8*deltalon)
+     else
+       lat_src_ptr(i,j) = latitude_one_tile(1,j) - (0.5_esmf_kind_r8*deltalon)
+     endif
 
-	 enddo
+   enddo
    enddo
  elseif (trim(input_grid_type) == "lambert_conformal") then
 
@@ -1302,16 +1302,16 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
    call netcdf_err(error, 'reading dx' )   
 
    call get_cell_corners(real(latitude_one_tile,esmf_kind_r8), &
-						real(longitude_one_tile, esmf_kind_r8), &
-						lat_src_ptr, lon_src_ptr, dx, clb, cub)
-						
+            real(longitude_one_tile, esmf_kind_r8), &
+            lat_src_ptr, lon_src_ptr, dx, clb, cub)
+            
  endif
 
-  nullify(lon_src_ptr)
-  nullify(lat_src_ptr)
-
+ deallocate(lon_src_ptr)
+ deallocate(lat_src_ptr)
  deallocate(longitude_one_tile)
  deallocate(latitude_one_tile)
+ 
  error= nf90_close(ncid)
  
  end subroutine define_input_grid_fv3_write

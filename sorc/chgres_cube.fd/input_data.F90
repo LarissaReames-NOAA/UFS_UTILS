@@ -3004,10 +3004,10 @@ subroutine read_input_atm_fv3_write_file(localpet)
 ! Get number of vertical levels and model top pressure.
 !---------------------------------------------------------------------------
 
- the_file = trim(data_dir_input_grid) // "/" // trim(atm_core_files_input_grid(7))
- print*,"- READ ATM VERTICAL LEVELS FROM: ", trim(atm_file)
- error=nf90_open(trim(atm_file),nf90_nowrite,ncid)
- call netcdf_err(error, 'opening: '//trim(atm_file) )
+ dyn_file = trim(data_dir_input_grid) // "/" // trim(atm_core_files_input_grid(7))
+ print*,"- READ ATM VERTICAL LEVELS FROM: ", trim(dyn_file)
+ error=nf90_open(trim(dyn_file),nf90_nowrite,ncid)
+ call netcdf_err(error, 'opening: '//trim(dyn_file) )
 
  error=nf90_inq_dimid(ncid, 'pfull', id_dim)
  call netcdf_err(error, 'reading pfull id' )
@@ -3042,10 +3042,10 @@ subroutine read_input_atm_fv3_write_file(localpet)
  endif
 
  if (localpet == 0) then
-   atm_file= trim(data_dir_input_grid) // "/" // trim(atm_core_files_input_grid(tile))
-   print*,"- READ ATMOSPHERIC WRITE OUTPUT FILE: ", trim(atm_file)
-   error=nf90_open(trim(atm_file),nf90_nowrite,ncid)
-   call netcdf_err(error, 'opening: '//trim(atm_file) )
+   dyn_file= trim(data_dir_input_grid) // "/" // trim(atm_core_files_input_grid(tile))
+   print*,"- READ ATMOSPHERIC WRITE OUTPUT FILE: ", trim(dyn_file)
+   error=nf90_open(trim(dyn_file),nf90_nowrite,ncid)
+   call netcdf_err(error, 'opening: '//trim(dyn_file) )
  endif
 
  if (localpet == 0) then
@@ -3139,8 +3139,6 @@ subroutine read_input_atm_fv3_write_file(localpet)
      call ESMF_FieldScatter(tracers_input_grid(i), data_one_tile_3d, rootpet=tile-1, tile=tile, rc=rc)
      if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
         call error_handler("IN FieldScatter", rc)
-   enddo
-
  enddo
 
  if (localpet == 0) error=nf90_close(ncid)
@@ -3153,7 +3151,7 @@ subroutine read_input_atm_fv3_write_file(localpet)
 
  deallocate(data_one_tile_3d, data_one_tile)
 
- end subroutine read_input_atm_restart_file
+ end subroutine read_input_atm_fv3_write_file
 
 
 !> Read input grid surface data from a spectral gfs gaussian sfcio

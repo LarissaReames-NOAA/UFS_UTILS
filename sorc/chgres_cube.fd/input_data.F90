@@ -3010,6 +3010,8 @@ subroutine read_input_atm_fv3_write_file(localpet)
  real(esmf_kind_r8), allocatable :: data_one_tile_3d(:,:,:)
  real(esmf_kind_r8), allocatable :: pres_interface(:)
 
+tile = 1
+
 !---------------------------------------------------------------------------
 ! Get number of vertical levels and model top pressure.
 !---------------------------------------------------------------------------
@@ -5614,7 +5616,7 @@ if (localpet == 0) then
 
  integer                         :: error, id_var
  integer                         :: id_dim, idim_input, jdim_input
- integer                         :: ncid, rc, tile
+ integer                         :: ncid, rc, tile, tile_read
 
  real(esmf_kind_r8), allocatable :: data_one_tile(:,:)
  real(esmf_kind_r8), allocatable :: data_one_tile_3d(:,:,:)
@@ -5678,10 +5680,11 @@ if (localpet == 0) then
    allocate(data_one_tile_3d(0,0,0))
  endif
 
- tile = 0
+ tile_read = 0
+ tile = 1
  
  if (localpet==0) then
-   call read_fv3_grid_data_netcdf('orog', tile, i_input, j_input, lsoil_input, &
+   call read_fv3_grid_data_netcdf('orog', tile_read, i_input, j_input, lsoil_input, &
                                   sfcdata=data_one_tile, write_file=the_file)
    data_one_tile = data_one_tile / 9.806_8  ! geopotential height
  endif
@@ -5695,16 +5698,16 @@ if (localpet == 0) then
 ! liquid soil moisture
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('soill1', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soill1', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,1) = data_one_tile
-    call read_fv3_grid_data_netcdf('soill2', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soill2', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,2) = data_one_tile
-    call read_fv3_grid_data_netcdf('soill3', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soill3', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,3) = data_one_tile
-    call read_fv3_grid_data_netcdf('soill4', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soill4', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,4) = data_one_tile
   endif
@@ -5717,16 +5720,16 @@ if (localpet == 0) then
 ! total soil moisture
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('soilw1', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soilw1', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,1) = data_one_tile
-    call read_fv3_grid_data_netcdf('soilw2', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soilw2', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,2) = data_one_tile
-    call read_fv3_grid_data_netcdf('soilw3', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soilw3', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,3) = data_one_tile
-    call read_fv3_grid_data_netcdf('soilw4', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soilw4', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,4) = data_one_tile
   endif
@@ -5739,16 +5742,16 @@ if (localpet == 0) then
 ! soil tempeature (ice temp at land ice points)
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('soilt1', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soilt1', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,1) = data_one_tile
-    call read_fv3_grid_data_netcdf('soilt2', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soilt2', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,2) = data_one_tile
-    call read_fv3_grid_data_netcdf('soilt3', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soilt3', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,3) = data_one_tile
-    call read_fv3_grid_data_netcdf('soilt4', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('soilt4', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,4) = data_one_tile
   endif
@@ -5761,7 +5764,7 @@ if (localpet == 0) then
 ! land mask
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('land', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('land', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5773,7 +5776,7 @@ if (localpet == 0) then
 ! sea ice fraction
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('icec', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('icec', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5785,7 +5788,7 @@ if (localpet == 0) then
 ! sea ice depth
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('icetk', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('icetk', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5797,7 +5800,7 @@ if (localpet == 0) then
 ! sea ice skin temperature
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('tisfc', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('tisfc', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5809,7 +5812,7 @@ if (localpet == 0) then
 ! liquid equivalent snow depth
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('weasd', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('weasd', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5821,7 +5824,7 @@ if (localpet == 0) then
 ! physical snow depth
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('snod', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('snod', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile = data_one_tile * 1000.0  ! convert from meters to mm.
   endif
@@ -5834,7 +5837,7 @@ if (localpet == 0) then
 ! Vegetation type
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('vtype', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('vtype', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5846,7 +5849,7 @@ if (localpet == 0) then
 ! Soil type
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('sotyp', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('sotyp', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5858,7 +5861,7 @@ if (localpet == 0) then
 ! Two-meter temperature
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('tmp2m', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('tmp2m', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5870,7 +5873,7 @@ if (localpet == 0) then
 ! Two-meter q
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('spfh2m', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('spfh2m', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5880,7 +5883,7 @@ if (localpet == 0) then
      call error_handler("IN FieldScatter", rc)
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('tprcp', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('tprcp', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5890,7 +5893,7 @@ if (localpet == 0) then
      call error_handler("IN FieldScatter", rc)
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('f10m', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('f10m', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 
@@ -5929,7 +5932,7 @@ if (localpet == 0) then
      call error_handler("IN FieldScatter", rc)
 
   if (localpet == 0) then
-    call read_fv3_grid_data_netcdf('tmpsfc', tile, i_input, j_input, &
+    call read_fv3_grid_data_netcdf('tmpsfc', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
   endif
 

@@ -178,6 +178,8 @@
                    atm_core_files_input_grid,    &
                    atm_tracer_files_input_grid,    &
                    grib2_file_input_grid, &
+                   write_dyn_file_input_grid, &
+                   write_phy_file_input_grid, &
                    geogrid_file_input_grid, &
                    data_dir_input_grid,     &
                    vcoord_file_target_grid, &

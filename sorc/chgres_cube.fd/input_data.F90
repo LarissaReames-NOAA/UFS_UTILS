@@ -5891,7 +5891,8 @@ if (localpet == 0) then
 
   if (localpet == 0) then
     call read_fv3_grid_data_netcdf('f10m', tile, i_input, j_input, &
-                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=1)
   endif
 
   print*,"- CALL FieldScatter FOR INPUT GRID F10M"
@@ -5899,9 +5900,10 @@ if (localpet == 0) then
   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
      call error_handler("IN FieldScatter", rc)
 
- ! Write files don't typically contain ffmm
-  if (localpet == 0) then
-   data_one_tile = 0.0
+  if (localpet == 0) then   
+   call read_fv3_grid_data_netcdf('ffmm', tile, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=1)
   endif
 
   print*,"- CALL FieldScatter FOR INPUT GRID FFMM"
@@ -5909,9 +5911,10 @@ if (localpet == 0) then
   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
      call error_handler("IN FieldScatter", rc)
 
- ! Write files don't typically contain fricv
   if (localpet == 0) then
-    data_one_tile = 0.0
+    call read_fv3_grid_data_netcdf('fricv', tile, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=1)
   endif
 
   print*,"- CALL FieldScatter FOR INPUT GRID USTAR"
@@ -5938,9 +5941,10 @@ if (localpet == 0) then
   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
      call error_handler("IN FieldScatter", rc)
 
- ! Write files don't typically contain cnwat
   if (localpet == 0) then
-    data_one_tile = 0.0
+    call read_fv3_grid_data_netcdf('cnwat', tile, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=1)
   endif
 
   print*,"- CALL FieldScatter FOR INPUT GRID CANOPY MOISTURE CONTENT."
@@ -5948,16 +5952,54 @@ if (localpet == 0) then
   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
      call error_handler("IN FieldScatter", rc)
 
- ! Write files don't typically contain sfcr
   if (localpet == 0) then
-    data_one_tile = 0.0
+    call read_fv3_grid_data_netcdf('sfcr', tile, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=1)
   endif
 
   print*,"- CALL FieldScatter FOR INPUT GRID Z0."
   call ESMF_FieldScatter(z0_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
      call error_handler("IN FieldScatter", rc)
+     
+ if (.not. vgfrc_from_climo) then
+   if (localpet == 0) then
+     call read_fv3_grid_data_netcdf('veg', tile, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=0)
+   endif
+   
+   print*,"- CALL FieldScatter FOR INPUT GRID VEG GREENNESS."
+   call ESMF_FieldScatter(veg_greenness_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)     
+ endif    
 
+ if (.not. minmax_vgfrc_from_climo) then
+   if (localpet == 0) then
+     call read_fv3_grid_data_netcdf('shdmax', tile, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=0)
+   endif
+   
+   print*,"- CALL FieldScatter FOR INPUT GRID MAX VEG GREENNESS."
+   call ESMF_FieldScatter(max_veg_greenness_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+     
+   if (localpet == 0) then
+     call read_fv3_grid_data_netcdf('shdmin', tile, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=0)
+   endif
+   
+   print*,"- CALL FieldScatter FOR INPUT GRID MAX VEG GREENNESS."
+   call ESMF_FieldScatter(min_veg_greenness_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+     
+ endif
  deallocate(data_one_tile, data_one_tile_3d)
 
  end subroutine read_input_sfc_fv3_write_file
@@ -6528,13 +6570,14 @@ if (localpet == 0) then
 !! @param [out] sfcdata_3d  3-d array containing field data
 !! @author George Gayno NCEP/EMC   
  SUBROUTINE READ_FV3_GRID_DATA_NETCDF(FIELD,TILE_NUM,IMO,JMO,LMO, &
-                                      SFCDATA, SFCDATA_3D, WRITE_FILE)
+                                      SFCDATA, SFCDATA_3D, WRITE_FILE, MISSING_OPT)
 
  IMPLICIT NONE
 
  CHARACTER(LEN=*),INTENT(IN)      :: FIELD
 
  INTEGER, INTENT(IN)   :: IMO, JMO, LMO, TILE_NUM
+ INTEGER, INTENT(IN), OPTIONAL :: MISSING_OPT
 
  REAL(ESMF_KIND_R8), INTENT(OUT), OPTIONAL     :: SFCDATA(IMO,JMO)
  REAL(ESMF_KIND_R8), INTENT(OUT), OPTIONAL     :: SFCDATA_3D(IMO,JMO,LMO)
@@ -6543,7 +6586,10 @@ if (localpet == 0) then
  CHARACTER(LEN=256), INTENT(IN), OPTIONAL  :: WRITE_FILE
 
  INTEGER               :: ERROR, NCID, ID_VAR
+ 
+ REAL(ESMF_KIND_R8), PARAMETER :: MISSING_VALUE = 0.0
 
+ IF(.NOT. PRESENT(MISSING_OPT)) MISSING_OPT = 0
  
  IF (TILE_NUM .GT. 0) THEN
    TILEFILE = TRIM(DATA_DIR_INPUT_GRID) // "/" // TRIM(SFC_FILES_INPUT_GRID(TILE_NUM))
@@ -6555,9 +6601,24 @@ if (localpet == 0) then
 
  ERROR=NF90_OPEN(TRIM(TILEFILE),NF90_NOWRITE,NCID)
  CALL NETCDF_ERR(ERROR, 'OPENING: '//TRIM(TILEFILE) )
+ 
 
  ERROR=NF90_INQ_VARID(NCID, FIELD, ID_VAR)
- CALL NETCDF_ERR(ERROR, 'READING FIELD ID' )
+ IF (MISSING_OPT = 0 ) THEN
+   CALL NETCDF_ERR(ERROR, 'READING FIELD ID' )
+ ELSE
+   IF (ERROR /= nf90_noerr) THEN
+     IF (PRESENT(SFCDATA_3D)) THEN 
+       SFCDATA_3D(:,:,:) = MISSING_VALUE
+     ELSE
+       SFCDATA(:,:) = MISSING_VALUE
+     ENDIF
+     ERROR = NF90_CLOSE(NCID)
+     RETURN
+   ELSE
+     CONTINUE
+   ENDIF
+ ENDIF
 
  IF (PRESENT(SFCDATA_3D)) THEN
    ERROR=NF90_GET_VAR(NCID, ID_VAR, SFCDATA_3D)

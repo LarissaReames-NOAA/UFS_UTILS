@@ -24,7 +24,9 @@
  character(len=500), public      :: mosaic_file_input_grid = "NULL" !< Input grid mosaic file.  Only used for "restart" or "history" input type.
  character(len=500), public      :: mosaic_file_target_grid = "NULL" !< Target grid mosaic file.
  character(len=500), public      :: nst_files_input_grid = "NULL" !< File name of input nst data.  Only used for input_type "gfs_gaussian_nemsio".
- character(len=500), public      :: grib2_file_input_grid = "NULL" !<  REQUIRED. File name of grib2 input data. Assumes atmospheric and surface data are in a single file. 
+ character(len=500), public      :: grib2_file_input_grid = "NULL" !< File name of grib2 input data. Assumes atmospheric and surface data are in a single file. 
+ character(len=500), public      :: write_dyn_file_input_grid = "NULL" !< File name of dynamic output from FV3's write component. Used for input_type "fv3_write"
+ character(len=500), public      :: write_phy_file_input_grid = "NULL" !< File name of physics output from FV3's write component. Used for input_type "fv3_write"
  character(len=500), public      :: geogrid_file_input_grid = "NULL" !< Name of "geogrid" file, which contains static
                                                                      !! surface fields on the input grid.  GRIB2 option
                                                                      !! only.
@@ -51,6 +53,7 @@
 !!                                    gaussian nemsio files
 !!                                 - "gfs_sigio" for spectral gfs
 !!                                    gfs sigio/sfcio files.
+!!                                 - "fv3_write" for fv3 write component output
  character(len=20),  public      :: external_model="GFS"  !< The model that the input data is derived from. Current supported options are: "GFS", "HRRR", "NAM", "RAP". Default: "GFS"
  
  character(len=500), public      :: fix_dir_input_grid = "NULL" !< Directory containing files of latitude and
@@ -175,6 +178,8 @@
                    atm_core_files_input_grid,    &
                    atm_tracer_files_input_grid,    &
                    grib2_file_input_grid, &
+                   write_dyn_file_input_grid, &
+                   write_phy_file_input_grid, &
                    geogrid_file_input_grid, &
                    data_dir_input_grid,     &
                    vcoord_file_target_grid, &
@@ -300,6 +305,8 @@
      print*,'- INPUT DATA FROM FV3 GAUSSIAN NETCDF FILE.'
    case ("grib2")
      print*,'- INPUT DATA FROM A GRIB2 FILE'
+   case ("fv3_write")
+     print*,'- INPUT DATA FROM FV3 WRITE COMPONENT OUTPUT.'
    case default
      call error_handler("UNRECOGNIZED INPUT DATA TYPE.", 1)
  end select
@@ -311,6 +318,18 @@
  if (trim(input_type) == "grib2") then
 	 if (trim(grib2_file_input_grid) == "NULL" .or. trim(grib2_file_input_grid) == "") then
 		 call error_handler("FOR GRIB2 DATA, PLEASE PROVIDE GRIB2_FILE_INPUT_GRID", 1)
+	 endif
+ endif
+ 
+!-------------------------------------------------------------------------
+! Ensure proper file variables provided for fv3_write input  
+!-------------------------------------------------------------------------
+
+ if (trim(input_type) == "fv3_write") then
+	 if (trim(write_dyn_file_input_grid) == "NULL" .or. trim(write_dyn_file_input_grid) == "" .or. & 
+	     trim(write_phy_file_input_grid) == "NULL" .or. trim(write_phy_file_input_grid) == "") then
+		 call error_handler("FOR FV3 WRITE COMPOENNT DATA, PLEASE PROVIDE WRITE_DYN_FILE_INPUT_GRID " // &
+		 " AND WRITE_PHY_FILE_INPUT_GRID.", 1)
 	 endif
  endif
 

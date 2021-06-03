@@ -22,6 +22,8 @@
                                     sfc_files_input_grid, &
                                     atm_files_input_grid, &
                                     grib2_file_input_grid, &
+                                    write_dyn_file_input_grid, &
+                                    write_phy_file_input_grid, &
                                     atm_core_files_input_grid, &
                                     atm_tracer_files_input_grid, &
                                     convert_nst, &
@@ -205,6 +207,10 @@
  elseif (trim(input_type) == "grib2") then
 
    call read_input_atm_grib2_file(localpet)
+   
+ elseif (trim(input_type) == "fv3_write") then
+
+   call read_input_atm_fv3_write_file(localpet)
 
  endif
 
@@ -622,12 +628,20 @@
    call read_input_sfc_gfs_sfcio_file(localpet)
 
 !-------------------------------------------------------------------------------
-! Read fv3gfs surface data in grib2 format.
+! Read surface data in grib2 format.
 !-------------------------------------------------------------------------------
 
  elseif (trim(input_type) == "grib2") then
 
    call read_input_sfc_grib2_file(localpet)
+   
+!-------------------------------------------------------------------------------
+! Read surface data in fv3gfs write component format.
+!-------------------------------------------------------------------------------
+   
+ elseif (trim(input_type) == "fv3_write") then
+
+   call read_input_atm_fv3_write_file(localpet)
 
  endif
 
@@ -2978,6 +2992,235 @@ else
  endif
  
  end subroutine read_input_atm_grib2_file
+
+subroutine read_input_atm_fv3_write_file(localpet)
+
+ implicit none
+
+ integer, intent(in)             :: localpet
+
+ character(len=500)              :: dyn_file
+
+ integer                         :: i, j, k
+ integer                         :: clb(3), cub(3), dims(4)
+ integer                         :: rc, tile, ncid, id_var
+ integer                         :: error, id_dim
+
+ real(esmf_kind_r8), allocatable :: data_one_tile(:,:)
+ real(esmf_kind_r8), allocatable :: data_one_tile_3d(:,:,:)
+ real(esmf_kind_r8), allocatable :: pres_interface(:)
+ real(esmf_kind_r8), pointer     :: presptr(:,:,:), dpresptr(:,:,:), psptr(:,:)
+tile = 1
+
+!---------------------------------------------------------------------------
+! Get number of vertical levels and model top pressure.
+!---------------------------------------------------------------------------
+
+ dyn_file = trim(data_dir_input_grid) // "/" // trim(write_dyn_file_input_grid)
+ print*,"- READ ATM VERTICAL LEVELS FROM: ", trim(dyn_file)
+ error=nf90_open(trim(dyn_file),nf90_nowrite,ncid)
+ call netcdf_err(error, 'opening: '//trim(dyn_file) )
+
+ error=nf90_inq_dimid(ncid, 'pfull', id_dim)
+ call netcdf_err(error, 'reading pfull id' )
+ error=nf90_inquire_dimension(ncid,id_dim,len=lev_input)
+ call netcdf_err(error, 'reading pfull value' )
+
+ levp1_input = lev_input + 1
+
+ error = nf90_close(ncid)
+
+!---------------------------------------------------------------------------
+! Initialize esmf atmospheric fields.
+!---------------------------------------------------------------------------
+
+ call init_atm_esmf_fields
+
+ print*,"- CALL FieldCreate FOR INPUT GRID DELTA PRESSURE."
+ dpres_input_grid = ESMF_FieldCreate(input_grid, &
+                                   typekind=ESMF_TYPEKIND_R8, &
+                                   staggerloc=ESMF_STAGGERLOC_CENTER, &
+                                   ungriddedLBound=(/1/), &
+                                   ungriddedUBound=(/lev_input/), rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+    call error_handler("IN FieldCreate", rc)
+
+ if (localpet == 0 ) then
+   allocate(data_one_tile_3d(i_input,j_input,lev_input))
+   allocate(data_one_tile(i_input,j_input))
+ else
+   allocate(data_one_tile_3d(0,0,0))
+   allocate(data_one_tile(0,0))
+ endif
+
+ if (localpet == 0) then
+   dyn_file= trim(data_dir_input_grid) // "/" // trim(write_dyn_file_input_grid)
+   print*,"- READ ATMOSPHERIC WRITE OUTPUT FILE: ", trim(dyn_file)
+   error=nf90_open(trim(dyn_file),nf90_nowrite,ncid)
+   call netcdf_err(error, 'opening: '//trim(dyn_file) )
+ endif
+
+ if (localpet == 0) then
+   error=nf90_inq_varid(ncid, 'hgtsfc', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, data_one_tile)
+   call netcdf_err(error, 'reading field' )
+   data_one_tile = data_one_tile / 9.806_8  ! geopotential height
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT GRID TERRAIN for tile ",tile
+ call ESMF_FieldScatter(terrain_input_grid, data_one_tile, rootpet=0, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+      call error_handler("IN FieldScatter", rc)
+
+ if (localpet==0) then
+   error=nf90_inq_varid(ncid, 'pressfc', id_var)
+   call netcdf_err(error, 'reading pressfc field id' )
+   error=nf90_get_var(ncid, id_var, data_one_tile)
+   call netcdf_err(error, 'reading pressfc field' )
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT GRID SURFACE P."
+ call ESMF_FieldScatter(ps_input_grid, data_one_tile, rootpet=0, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+      call error_handler("IN FieldScatter", rc)
+
+ if (localpet == 0) then
+  error=nf90_inq_varid(ncid, 'dzdt', id_var)
+  call netcdf_err(error, 'reading field id' )
+  error=nf90_get_var(ncid, id_var, data_one_tile_3d)
+  call netcdf_err(error, 'reading field' )
+  data_one_tile_3d(:,:,1:lev_input) = data_one_tile_3d(:,:,lev_input:1:-1)
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT GRID VERTICAL VELOCITY for tile ",tile
+ call ESMF_FieldScatter(dzdt_input_grid, data_one_tile_3d, rootpet=0, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+      call error_handler("IN FieldScatter", rc)
+
+ if (localpet == 0) then
+   error=nf90_inq_varid(ncid, 'tmp', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, data_one_tile_3d)
+   call netcdf_err(error, 'reading field' )
+   data_one_tile_3d(:,:,1:lev_input) = data_one_tile_3d(:,:,lev_input:1:-1)
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT GRID TEMPERATURE."
+ call ESMF_FieldScatter(temp_input_grid, data_one_tile_3d, rootpet=0, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+      call error_handler("IN FieldScatter", rc)
+
+ if (localpet == 0) then
+   error=nf90_inq_varid(ncid, 'dpres', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, data_one_tile_3d)
+   call netcdf_err(error, 'reading field' )
+   data_one_tile_3d(:,:,1:lev_input) = data_one_tile_3d(:,:,lev_input:1:-1)
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT DELTA PRESSURE."
+ call ESMF_FieldScatter(dpres_input_grid, data_one_tile_3d, rootpet=0, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+      call error_handler("IN FieldScatter", rc)
+
+ if (localpet == 0) then
+   error=nf90_inq_varid(ncid, 'ugrd', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, data_one_tile_3d)
+   call netcdf_err(error, 'reading field' )
+   data_one_tile_3d(:,:,1:lev_input) = data_one_tile_3d(:,:,lev_input:1:-1)
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT GRID U."
+ call ESMF_FieldScatter(u_input_grid, data_one_tile_3d, rootpet=0, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+    call error_handler("IN FieldScatter", rc)
+
+ if (localpet == 0) then
+   error=nf90_inq_varid(ncid, 'vgrd', id_var)
+   call netcdf_err(error, 'reading field id' )
+   error=nf90_get_var(ncid, id_var, data_one_tile_3d)
+   call netcdf_err(error, 'reading field' )
+   data_one_tile_3d(:,:,1:lev_input) = data_one_tile_3d(:,:,lev_input:1:-1)
+ endif
+
+ print*,"- CALL FieldScatter FOR INPUT GRID V."
+ call ESMF_FieldScatter(v_input_grid, data_one_tile_3d, rootpet=0, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+      call error_handler("IN FieldScatter", rc)
+      
+  do i = 1, num_tracers_input
+    if (localpet == 0) then
+      error=nf90_inq_varid(ncid, tracers_input(i), id_var)
+      call netcdf_err(error, 'reading field id' )
+      error=nf90_get_var(ncid, id_var, data_one_tile_3d)
+      call netcdf_err(error, 'reading field' )
+      data_one_tile_3d(:,:,1:lev_input) = data_one_tile_3d(:,:,lev_input:1:-1)
+    endif
+
+     print*,"- CALL FieldScatter FOR INPUT ", trim(tracers_input(i))
+     call ESMF_FieldScatter(tracers_input_grid(i), data_one_tile_3d, rootpet=0, rc=rc)
+     if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+        call error_handler("IN FieldScatter", rc)
+ enddo
+
+ if (localpet == 0) error=nf90_close(ncid)
+
+!---------------------------------------------------------------------------
+! Convert from 2-d to 3-d cartesian winds.
+!---------------------------------------------------------------------------
+
+ call convert_winds
+
+!---------------------------------------------------------------------------
+! Compute pressure.
+!---------------------------------------------------------------------------
+
+ print*,"- CALL FieldGet FOR PRESSURE."
+ call ESMF_FieldGet(pres_input_grid, &
+                    computationalLBound=clb, &
+                    computationalUBound=cub, &
+                    farrayPtr=presptr, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+    call error_handler("IN FieldGet", rc)
+
+ print*,"- CALL FieldGet FOR DELTA PRESSURE."
+ call ESMF_FieldGet(dpres_input_grid, &
+                    farrayPtr=dpresptr, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+    call error_handler("IN FieldGet", rc)
+
+ print*,"- CALL FieldGet FOR SURFACE PRESSURE."
+ call ESMF_FieldGet(ps_input_grid, &
+                    farrayPtr=psptr, rc=rc)
+ if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+    call error_handler("IN FieldGet", rc)
+
+ allocate(pres_interface(levp1_input))
+
+!---------------------------------------------------------------------------
+! Compute 3-d pressure.
+!---------------------------------------------------------------------------
+
+ do i = clb(1), cub(1)
+   do j = clb(2), cub(2)
+     pres_interface(1) = psptr(i,j)
+     do k = 2, levp1_input
+       pres_interface(k) = pres_interface(k-1) - dpresptr(i,j,k-1)
+     enddo
+     do k = 1, lev_input
+       presptr(i,j,k) = (pres_interface(k) + pres_interface(k+1)) / 2.0_8
+     enddo
+   enddo
+ enddo
+
+ deallocate(pres_interface)
+ call ESMF_FieldDestroy(dpres_input_grid, rc=rc)
+ deallocate(data_one_tile_3d, data_one_tile)
+
+ end subroutine read_input_atm_fv3_write_file
+
 
 !> Read input grid surface data from a spectral gfs gaussian sfcio
 !! file.
@@ -5415,6 +5658,411 @@ if (localpet == 0) then
  
  end subroutine read_input_sfc_grib2_file
    
+ !> Read input grid surface data from fv3 write component output.
+!!
+!! @param[in] localpet  ESMF local persistent execution thread 
+!! @author Larissa Reames OU CIMMS/ NOAA NSSL
+ subroutine read_input_sfc_fv3_write_file(localpet)
+
+ implicit none
+
+ integer, intent(in)             :: localpet
+
+ character(len=500)              :: the_file
+
+ integer                         :: error, id_var
+ integer                         :: id_dim, idim_input, jdim_input
+ integer                         :: ncid, rc, tile, tile_read
+
+ real(esmf_kind_r8), allocatable :: data_one_tile(:,:)
+ real(esmf_kind_r8), allocatable :: data_one_tile_3d(:,:,:)
+
+!---------------------------------------------------------------------------
+! Get i/j dimensions and number of soil layers from first surface file.
+! Do dimensions match those from the orography file?
+!---------------------------------------------------------------------------
+
+ the_file = trim(data_dir_input_grid) // "/" // trim(write_phy_file_input_grid)
+ print*,"- READ GRID DIMENSIONS FROM: ", trim(the_file)
+ error=nf90_open(trim(the_file),nf90_nowrite,ncid)
+ call netcdf_err(error, 'opening: '//trim(the_file) )
+ 
+ error=nf90_get_att(ncid,NF90_GLOBAL,"nsoil",lsoil_input)
+ call netcdf_err(error, 'reading nsoil global variable' )
+ 
+ !We need to recreate the soil fields if we have something other than 4 levels
+ if (lsoil_input /= 4) then
+
+   call ESMF_FieldDestroy(soil_temp_input_grid, rc=rc)
+   call ESMF_FieldDestroy(soilm_tot_input_grid, rc=rc)
+   call ESMF_FieldDestroy(soilm_liq_input_grid, rc=rc)
+
+   print*,"- CALL FieldCreate FOR INPUT SOIL TEMPERATURE."
+   soil_temp_input_grid = ESMF_FieldCreate(input_grid, &
+                typekind=ESMF_TYPEKIND_R8, &
+                staggerloc=ESMF_STAGGERLOC_CENTER, &
+                ungriddedLBound=(/1/), &
+                ungriddedUBound=(/lsoil_input/), rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+   call error_handler("IN FieldCreate", rc)
+
+   print*,"- CALL FieldCreate FOR INPUT TOTAL SOIL MOISTURE."
+   soilm_tot_input_grid = ESMF_FieldCreate(input_grid, &
+                typekind=ESMF_TYPEKIND_R8, &
+                staggerloc=ESMF_STAGGERLOC_CENTER, &
+                ungriddedLBound=(/1/), &
+                ungriddedUBound=(/lsoil_input/), rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+   call error_handler("IN FieldCreate", rc)
+
+   print*,"- CALL FieldCreate FOR INPUT LIQUID SOIL MOISTURE."
+   soilm_liq_input_grid = ESMF_FieldCreate(input_grid, &
+                typekind=ESMF_TYPEKIND_R8, &
+                staggerloc=ESMF_STAGGERLOC_CENTER, &
+                ungriddedLBound=(/1/), &
+                ungriddedUBound=(/lsoil_input/), rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+   call error_handler("IN FieldCreate", rc)
+
+ endif
+
+ error = nf90_close(ncid)
+
+ if (localpet == 0) then
+   allocate(data_one_tile(i_input,j_input))
+   allocate(data_one_tile_3d(i_input,j_input,lsoil_input))
+ else
+   allocate(data_one_tile(0,0))
+   allocate(data_one_tile_3d(0,0,0))
+ endif
+
+ tile_read = 0
+ tile = 1
+ 
+ if (localpet==0) then
+   call read_fv3_grid_data_netcdf('orog', tile_read, i_input, j_input, lsoil_input, &
+                                  sfcdata=data_one_tile, write_file=the_file)
+   data_one_tile = data_one_tile / 9.806_8  ! geopotential height
+ endif
+   
+ print*,"- CALL FieldScatter FOR INPUT TERRAIN." 
+ call ESMF_FieldScatter(terrain_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+
+! liquid soil moisture
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('soill1', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,1) = data_one_tile
+    call read_fv3_grid_data_netcdf('soill2', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,2) = data_one_tile
+    call read_fv3_grid_data_netcdf('soill3', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,3) = data_one_tile
+    call read_fv3_grid_data_netcdf('soill4', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,4) = data_one_tile
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT LIQUID SOIL MOISTURE."
+  call ESMF_FieldScatter(soilm_liq_input_grid, data_one_tile_3d, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! total soil moisture
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('soilw1', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,1) = data_one_tile
+    call read_fv3_grid_data_netcdf('soilw2', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,2) = data_one_tile
+    call read_fv3_grid_data_netcdf('soilw3', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,3) = data_one_tile
+    call read_fv3_grid_data_netcdf('soilw4', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,4) = data_one_tile
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT TOTAL SOIL MOISTURE."
+  call ESMF_FieldScatter(soilm_tot_input_grid, data_one_tile_3d, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! soil tempeature (ice temp at land ice points)
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('soilt1', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,1) = data_one_tile
+    call read_fv3_grid_data_netcdf('soilt2', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,2) = data_one_tile
+    call read_fv3_grid_data_netcdf('soilt3', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,3) = data_one_tile
+    call read_fv3_grid_data_netcdf('soilt4', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile_3d(:,:,4) = data_one_tile
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT SOIL TEMPERATURE."
+  call ESMF_FieldScatter(soil_temp_input_grid, data_one_tile_3d, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! land mask
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('land', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT LANDSEA MASK."
+  call ESMF_FieldScatter(landsea_mask_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! sea ice fraction
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('icec', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID SEAICE FRACTION."
+  call ESMF_FieldScatter(seaice_fract_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! sea ice depth
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('icetk', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID SEAICE DEPTH."
+  call ESMF_FieldScatter(seaice_depth_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! sea ice skin temperature
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('tisfc', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID SEAICE SKIN TEMPERATURE."
+  call ESMF_FieldScatter(seaice_skin_temp_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! liquid equivalent snow depth
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('weasd', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID SNOW LIQUID EQUIVALENT."
+  call ESMF_FieldScatter(snow_liq_equiv_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! physical snow depth
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('snod', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+    data_one_tile = data_one_tile * 1000.0  ! convert from meters to mm.
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID SNOW DEPTH."
+  call ESMF_FieldScatter(snow_depth_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! Vegetation type
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('vtype', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID VEG TYPE."
+  call ESMF_FieldScatter(veg_type_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! Soil type
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('sotyp', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID SOIL TYPE."
+  call ESMF_FieldScatter(soil_type_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! Two-meter temperature
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('tmp2m', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID T2M."
+  call ESMF_FieldScatter(t2m_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+! Two-meter q
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('spfh2m', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID Q2M."
+  call ESMF_FieldScatter(q2m_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('tprcp', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID TPRCP."
+  call ESMF_FieldScatter(tprcp_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('f10m', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID F10M"
+  call ESMF_FieldScatter(f10m_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+  if (localpet == 0) then   
+   call read_fv3_grid_data_netcdf('ffmm', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=1)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID FFMM"
+  call ESMF_FieldScatter(ffmm_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('fricv', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=1)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID USTAR"
+  call ESMF_FieldScatter(ustar_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+  if (localpet == 0) then
+    data_one_tile = 0.0
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID SRFLAG"
+  call ESMF_FieldScatter(srflag_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('tmpsfc', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID SKIN TEMPERATURE"
+  call ESMF_FieldScatter(skin_temp_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('cnwat', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=1)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID CANOPY MOISTURE CONTENT."
+  call ESMF_FieldScatter(canopy_mc_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+
+  if (localpet == 0) then
+    call read_fv3_grid_data_netcdf('sfcr', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=1)
+  endif
+
+  print*,"- CALL FieldScatter FOR INPUT GRID Z0."
+  call ESMF_FieldScatter(z0_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+     
+ if (.not. vgfrc_from_climo) then
+   if (localpet == 0) then
+     call read_fv3_grid_data_netcdf('veg', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=0)
+   endif
+   
+   print*,"- CALL FieldScatter FOR INPUT GRID VEG GREENNESS."
+   call ESMF_FieldScatter(veg_greenness_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)     
+ endif    
+
+ if (.not. minmax_vgfrc_from_climo) then
+   if (localpet == 0) then
+     call read_fv3_grid_data_netcdf('shdmax', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=0)
+   endif
+   
+   print*,"- CALL FieldScatter FOR INPUT GRID MAX VEG GREENNESS."
+   call ESMF_FieldScatter(max_veg_greenness_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+     
+   if (localpet == 0) then
+     call read_fv3_grid_data_netcdf('shdmin', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile, write_file=the_file, &
+                                   missing_opt=0)
+   endif
+   
+   print*,"- CALL FieldScatter FOR INPUT GRID MAX VEG GREENNESS."
+   call ESMF_FieldScatter(min_veg_greenness_input_grid, data_one_tile, rootpet=0, tile=tile, rc=rc)
+   if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldScatter", rc)
+     
+ endif
+ deallocate(data_one_tile, data_one_tile_3d)
+
+ end subroutine read_input_sfc_fv3_write_file
+  
+   
 !> Read nst data from these netcdf formatted fv3 files: tiled history,
 !! tiled warm restart, and gaussian history.
 !!
@@ -5980,30 +6628,59 @@ if (localpet == 0) then
 !! @param [out] sfcdata_3d  3-d array containing field data
 !! @author George Gayno NCEP/EMC   
  SUBROUTINE READ_FV3_GRID_DATA_NETCDF(FIELD,TILE_NUM,IMO,JMO,LMO, &
-                                      SFCDATA, SFCDATA_3D)
+                                      SFCDATA, SFCDATA_3D, WRITE_FILE, MISSING_OPT)
 
  IMPLICIT NONE
 
  CHARACTER(LEN=*),INTENT(IN)      :: FIELD
 
  INTEGER, INTENT(IN)   :: IMO, JMO, LMO, TILE_NUM
+ INTEGER, INTENT(IN), OPTIONAL :: MISSING_OPT
 
  REAL(ESMF_KIND_R8), INTENT(OUT), OPTIONAL     :: SFCDATA(IMO,JMO)
  REAL(ESMF_KIND_R8), INTENT(OUT), OPTIONAL     :: SFCDATA_3D(IMO,JMO,LMO)
 
  CHARACTER(LEN=256)    :: TILEFILE
+ CHARACTER(LEN=256), INTENT(IN), OPTIONAL  :: WRITE_FILE
 
- INTEGER               :: ERROR, NCID, ID_VAR
+ INTEGER               :: ERROR, NCID, ID_VAR, DOFILL
+ 
+ REAL(ESMF_KIND_R8), PARAMETER :: MISSING_VALUE = 0.0
 
- TILEFILE = TRIM(DATA_DIR_INPUT_GRID) // "/" // TRIM(SFC_FILES_INPUT_GRID(TILE_NUM))
+ IF(.NOT. PRESENT(MISSING_OPT)) THEN 
+   DOFILL = 0
+ ELSE
+   DOFILL = MISSING_OPT
+ ENDIF
+ 
+ IF (TILE_NUM .GT. 0) THEN
+   TILEFILE = TRIM(DATA_DIR_INPUT_GRID) // "/" // TRIM(SFC_FILES_INPUT_GRID(TILE_NUM))
+ ELSE
+   TILEFILE = WRITE_FILE
+ ENDIF
 
  PRINT*,'WILL READ ',TRIM(FIELD), ' FROM: ', TRIM(TILEFILE)
 
  ERROR=NF90_OPEN(TRIM(TILEFILE),NF90_NOWRITE,NCID)
  CALL NETCDF_ERR(ERROR, 'OPENING: '//TRIM(TILEFILE) )
+ 
 
  ERROR=NF90_INQ_VARID(NCID, FIELD, ID_VAR)
- CALL NETCDF_ERR(ERROR, 'READING FIELD ID' )
+ IF (DOFILL == 0 ) THEN
+   CALL NETCDF_ERR(ERROR, 'READING FIELD ID' )
+ ELSE
+   IF (ERROR /= nf90_noerr) THEN
+     IF (PRESENT(SFCDATA_3D)) THEN 
+       SFCDATA_3D(:,:,:) = MISSING_VALUE
+     ELSE
+       SFCDATA(:,:) = MISSING_VALUE
+     ENDIF
+     ERROR = NF90_CLOSE(NCID)
+     RETURN
+   ELSE
+     CONTINUE
+   ENDIF
+ ENDIF
 
  IF (PRESENT(SFCDATA_3D)) THEN
    ERROR=NF90_GET_VAR(NCID, ID_VAR, SFCDATA_3D)

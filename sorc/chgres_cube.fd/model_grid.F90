@@ -1116,7 +1116,7 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
 
  integer, intent(in)          :: localpet, npets
 
- integer                      :: error, extra, i, j, clb(2), cub(2) 
+ integer                      :: error, i, j, clb(2), cub(2) 
 
  real(esmf_kind_r4), allocatable       :: latitude_one_tile(:,:), lat_corners(:,:)
  real(esmf_kind_r4), allocatable       :: longitude_one_tile(:,:), lon_corners(:,:)
@@ -1171,8 +1171,6 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
 !-----------------------------------------------------------------------
 ! Create ESMF grid object for the model grid.
 !-----------------------------------------------------------------------
-
- extra = npets / num_tiles_input_grid
 
  print*,"- CALL GridCreateNoPeriDim FOR INPUT MODEL GRID"
  input_grid = ESMF_GridCreateNoPeriDim(maxIndex=(/i_input,j_input/), & 

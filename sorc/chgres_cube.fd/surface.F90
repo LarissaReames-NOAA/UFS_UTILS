@@ -163,9 +163,22 @@
  use static_data, only               :  get_static_fields, &
                                        cleanup_static_fields
 
+ use model_grid, only : input_grid
+
  implicit none
 
  integer, intent(in)                :: localpet
+ integer :: error
+ real(esmf_kind_r8), pointer :: lat_src_ptr(:,:)
+
+ call ESMF_GridGetCoord(input_grid, &
+                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                          coordDim=2, &
+                          farrayPtr=lat_src_ptr, rc=error)
+   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+      call error_handler("IN GridGetCoord", error)
+ print*, "in driver", minval(lat_src_ptr), maxval(lat_src_ptr)
+ nullify(lat_src_ptr)
 
 !-----------------------------------------------------------------------
 ! Compute soil-based parameters.
@@ -422,7 +435,7 @@
  real(esmf_kind_r8), pointer        :: veg_greenness_target_ptr(:,:)
  real(esmf_kind_r8), pointer        :: min_veg_greenness_target_ptr(:,:)
  real(esmf_kind_r8), pointer        :: max_veg_greenness_target_ptr(:,:)
- real(esmf_kind_r8), pointer        :: lai_target_ptr(:,:)
+ real(esmf_kind_r8), pointer        :: lai_target_ptr(:,:), lat_src_ptr(:,:), lon_src_ptr(:,:)
 
  type(esmf_regridmethod_flag)       :: method
  type(esmf_routehandle)             :: regrid_bl_no_mask
@@ -750,7 +763,7 @@
  method=ESMF_REGRIDMETHOD_CONSERVE
 
  isrctermprocessing = 1
-
+ 
  print*,"- CALL FieldRegridStore for sea ice fraction."
  call ESMF_FieldRegridStore(seaice_fract_input_grid, &
                             seaice_fract_target_grid, &

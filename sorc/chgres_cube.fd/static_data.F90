@@ -45,7 +45,7 @@
 !! @author George Gayno NCEP/EMC   
  subroutine get_static_fields(localpet)
 
- use model_grid, only               : target_grid, &
+ use model_grid, only               : target_grid, input_grid, &
                                       num_tiles_target_grid, &
                                       i_target, j_target
 

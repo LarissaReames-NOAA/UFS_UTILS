@@ -1136,7 +1136,7 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
  
  !! Only lambert_conformal and regional_latlon grid types are supported at this time
  if (trim(input_grid_type) .ne. "lambert_conformal" .and. trim(input_grid_type) .ne. "regional_latlon") then
-   call error_handler("FV3 write component grid type ", input_grid_type, " is not supported "// &
+   call error_handler("FV3 write component grid type ", trim(input_grid_type), " is not supported "// &
                       " at this time. Please use regional_latlon or lambert_conformal.", 1)
  endif
 
@@ -1302,15 +1302,25 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
    call get_cell_corners(real(latitude_one_tile,esmf_kind_r8), &
             real(longitude_one_tile, esmf_kind_r8), &
             lat_src_ptr, lon_src_ptr, dx, clb, cub)
-            
+   print*, minval(lat_src_ptr), maxval(lat_src_ptr)   
+   print*, minval(lon_src_ptr), maxval(lon_src_ptr) 
  endif
-
+ 
  deallocate(lon_src_ptr)
- deallocate(lat_src_ptr)
+ nullify(lat_src_ptr)
  deallocate(longitude_one_tile)
  deallocate(latitude_one_tile)
- 
- error= nf90_close(ncid)
+ call ESMF_GridGetCoord(input_grid, &
+                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                          coordDim=2, &
+                          computationalLBound=clb, &
+                          computationalUBound=cub, &
+                          farrayPtr=lat_src_ptr, rc=error)
+   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+      call error_handler("IN GridGetCoord", error)
+ print*, minval(lat_src_ptr), maxval(lat_src_ptr)
+ deallocate(lat_src_ptr)
+ error=nf90_close(ncid)
  
  end subroutine define_input_grid_fv3_write
  
@@ -1786,16 +1796,16 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
   do j = clb(2),cub(2)
    do i = clb(1), cub(1)
 
-                 if (j == jp1_input .and. i == ip1_input) then
+     if (j == jp1_input .and. i == ip1_input) then
        lat1 = latitude(i_input,j_input)  * ( pi / 180.0_esmf_kind_r8 )
        lon1 = longitude(i_input,j_input) * ( pi / 180.0_esmf_kind_r8 )
-                         brng = 315.0_esmf_kind_r8 * pi / 180.0_esmf_kind_r8
-                         lat2 = asin( sin( lat1 ) * cos( d / R ) + cos( lat1 ) * sin( d / R ) * cos( brng ) );
-                         lon2= lon1 + atan2( sin( brng ) * sin( d / R ) * cos( lat1 ), cos( d / R ) - sin( lat1 ) * sin( lat2 ) );
-                         latitude_sw(ip1_input,jp1_input) = lat2 * 180.0_esmf_kind_r8 / pi
-                         longitude_sw(ip1_input,jp1_input) = lon2 * 180.0_esmf_kind_r8 / pi
-                         cycle
-                 endif
+       brng = 315.0_esmf_kind_r8 * pi / 180.0_esmf_kind_r8
+       lat2 = asin( sin( lat1 ) * cos( d / R ) + cos( lat1 ) * sin( d / R ) * cos( brng ) );
+       lon2= lon1 + atan2( sin( brng ) * sin( d / R ) * cos( lat1 ), cos( d / R ) - sin( lat1 ) * sin( lat2 ) );
+       latitude_sw(ip1_input,jp1_input) = lat2 * 180.0_esmf_kind_r8 / pi
+       longitude_sw(ip1_input,jp1_input) = lon2 * 180.0_esmf_kind_r8 / pi
+       cycle
+     endif
 
      if (i == ip1_input) then
        brng = 225.0_esmf_kind_r8 * pi / 180.0_esmf_kind_r8
@@ -1819,9 +1829,8 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
        cycle
      endif
 
-                 lat1 = latitude(i,j)  * ( pi / 180.0_esmf_kind_r8 )
+     lat1 = latitude(i,j)  * ( pi / 180.0_esmf_kind_r8 )
      lon1 = longitude(i,j) * ( pi / 180.0_esmf_kind_r8 )
-
      brng = bearingInDegrees * ( pi / 180.0_esmf_kind_r8 );
      lat2 = asin( sin( lat1 ) * cos( d / R ) + cos( lat1 ) * sin( d / R ) * cos( brng ) );
      lon2= lon1 + atan2( sin( brng ) * sin( d / R ) * cos( lat1 ), cos( d / R ) - sin( lat1 ) * sin( lat2 ) );

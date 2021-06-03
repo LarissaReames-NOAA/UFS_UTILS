@@ -388,7 +388,17 @@
 
  integer, intent(in)             :: localpet
 
- integer                         :: rc
+ integer                         :: rc, error
+ real(esmf_kind_r8), pointer :: lat_src_ptr(:,:)
+
+ call ESMF_GridGetCoord(input_grid, &
+                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                          coordDim=2, &
+                          farrayPtr=lat_src_ptr, rc=error)
+   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+      call error_handler("IN GridGetCoord", error)
+ print*, "in read_input_sfc 1", minval(lat_src_ptr), maxval(lat_src_ptr)
+ nullify(lat_src_ptr)
 
  print*,"- CALL FieldCreate FOR INPUT GRID LANDSEA MASK."
  landsea_mask_input_grid = ESMF_FieldCreate(input_grid, &
@@ -549,8 +559,6 @@
                                    ungriddedUBound=(/lsoil_input/), rc=rc)
  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
     call error_handler("IN FieldCreate", rc)
-    
- 
 
  if (.not. vgfrc_from_climo) then
    print*,"- CALL FieldCreate FOR INPUT VEGETATION GREENNESS."
@@ -585,7 +593,14 @@
    if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
     call error_handler("IN FieldCreate", rc)
  endif
-
+  call ESMF_GridGetCoord(input_grid, &
+                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                          coordDim=2, &
+                          farrayPtr=lat_src_ptr, rc=error)
+   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+      call error_handler("IN GridGetCoord", error)
+ print*, "in read_input_sfc 2", minval(lat_src_ptr), maxval(lat_src_ptr)
+ nullify(lat_src_ptr)
 !-------------------------------------------------------------------------------
 ! Read the tiled 'warm' restart files.
 !-------------------------------------------------------------------------------
@@ -641,7 +656,7 @@
    
  elseif (trim(input_type) == "fv3_write") then
 
-   call read_input_atm_fv3_write_file(localpet)
+   call read_input_sfc_fv3_write_file(localpet)
 
  endif
 
@@ -5676,12 +5691,21 @@ if (localpet == 0) then
 
  real(esmf_kind_r8), allocatable :: data_one_tile(:,:)
  real(esmf_kind_r8), allocatable :: data_one_tile_3d(:,:,:)
+ real(esmf_kind_r8), pointer :: lat_src_ptr(:,:)
+
+ call ESMF_GridGetCoord(input_grid, &
+                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
+                          coordDim=2, &
+                          farrayPtr=lat_src_ptr, rc=error)
+   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+      call error_handler("IN GridGetCoord", error)
+ print*, "in read", minval(lat_src_ptr), maxval(lat_src_ptr)
+ nullify(lat_src_ptr)
 
 !---------------------------------------------------------------------------
 ! Get i/j dimensions and number of soil layers from first surface file.
 ! Do dimensions match those from the orography file?
 !---------------------------------------------------------------------------
-
  the_file = trim(data_dir_input_grid) // "/" // trim(write_phy_file_input_grid)
  print*,"- READ GRID DIMENSIONS FROM: ", trim(the_file)
  error=nf90_open(trim(the_file),nf90_nowrite,ncid)

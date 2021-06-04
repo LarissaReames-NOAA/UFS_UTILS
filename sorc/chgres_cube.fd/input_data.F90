@@ -6677,6 +6677,8 @@ if (localpet == 0) then
 !! @param [in] lmo number of vertical levels of field
 !! @param [out] sfcdata 1-d array containing field data
 !! @param [out] sfcdata_3d  3-d array containing field data
+!! @param [in] write_file (optional) path to fv3 write component file
+!! @param [in] missing_opt (optional) option to set array to fill value of 0 if missing in file 
 !! @author George Gayno NCEP/EMC   
  SUBROUTINE READ_FV3_GRID_DATA_NETCDF(FIELD,TILE_NUM,IMO,JMO,LMO, &
                                       SFCDATA, SFCDATA_3D, WRITE_FILE, MISSING_OPT)

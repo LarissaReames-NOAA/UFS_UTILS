@@ -171,15 +171,6 @@
  integer :: error
  real(esmf_kind_r8), pointer :: lat_src_ptr(:,:)
 
- call ESMF_GridGetCoord(input_grid, &
-                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
-                          coordDim=2, &
-                          farrayPtr=lat_src_ptr, rc=error)
-   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
-      call error_handler("IN GridGetCoord", error)
- print*, "in driver", minval(lat_src_ptr), maxval(lat_src_ptr)
- nullify(lat_src_ptr)
-
 !-----------------------------------------------------------------------
 ! Compute soil-based parameters.
 !-----------------------------------------------------------------------
@@ -2598,11 +2589,10 @@
            bx = bb_target(soil_type)
 
            if (bx .gt. blim) bx = blim
-
            fk=(((hlice/(grav*(-satpsi_target(soil_type))))*           &
             ((soil_temp_ptr(i,j,n)-frz_h2o)/soil_temp_ptr(i,j,n)))**             &
             (-1/bx))*maxsmc_target(soil_type)
-
+         
            if (fk .lt. 0.02) fk = 0.02
 
            soilm_liq_ptr(i,j,n) = min ( fk, soilm_tot_ptr(i,j,n) )

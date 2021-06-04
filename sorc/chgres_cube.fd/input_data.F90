@@ -391,218 +391,199 @@
  integer                         :: rc, error
  real(esmf_kind_r8), pointer :: lat_src_ptr(:,:)
 
- call ESMF_GridGetCoord(input_grid, &
-                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
-                          coordDim=2, &
-                          farrayPtr=lat_src_ptr, rc=error)
-   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
-      call error_handler("IN GridGetCoord", error)
- print*, "in read_input_sfc 1", minval(lat_src_ptr), maxval(lat_src_ptr)
- nullify(lat_src_ptr)
+  print*,"- CALL FieldCreate FOR INPUT GRID LANDSEA MASK."
+  landsea_mask_input_grid = ESMF_FieldCreate(input_grid, &
+                                      typekind=ESMF_TYPEKIND_R8, &
+                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID Z0."
+  z0_input_grid = ESMF_FieldCreate(input_grid, &
+                                      typekind=ESMF_TYPEKIND_R8, &
+                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID VEGETATION TYPE."
+  veg_type_input_grid = ESMF_FieldCreate(input_grid, &
+                                      typekind=ESMF_TYPEKIND_R8, &
+                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID CANOPY MOISTURE CONTENT."
+  canopy_mc_input_grid = ESMF_FieldCreate(input_grid, &
+                                      typekind=ESMF_TYPEKIND_R8, &
+                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID SEAICE FRACTION."
+  seaice_fract_input_grid = ESMF_FieldCreate(input_grid, &
+                                      typekind=ESMF_TYPEKIND_R8, &
+                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID SEAICE DEPTH."
+  seaice_depth_input_grid = ESMF_FieldCreate(input_grid, &
+                                      typekind=ESMF_TYPEKIND_R8, &
+                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID SEAICE SKIN TEMPERATURE."
+  seaice_skin_temp_input_grid = ESMF_FieldCreate(input_grid, &
+                                      typekind=ESMF_TYPEKIND_R8, &
+                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID SNOW DEPTH."
+  snow_depth_input_grid = ESMF_FieldCreate(input_grid, &
+                                      typekind=ESMF_TYPEKIND_R8, &
+                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID SNOW LIQUID EQUIVALENT."
+  snow_liq_equiv_input_grid = ESMF_FieldCreate(input_grid, &
+                                      typekind=ESMF_TYPEKIND_R8, &
+                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID T2M."
+  t2m_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID Q2M."
+  q2m_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID TPRCP."
+  tprcp_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID F10M."
+  f10m_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID USTAR."
+  ustar_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID FFMM."
+  ffmm_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT GRID SRFLAG."
+  srflag_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT SKIN TEMPERATURE."
+  skin_temp_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT SOIL TYPE."
+  soil_type_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+  
+  print*,"- CALL FieldCreate FOR INPUT TERRAIN."
+  terrain_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  print*,"- CALL FieldCreate FOR INPUT SOIL TEMPERATURE."
+  soil_temp_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, &
+                                    ungriddedLBound=(/1/), &
+                                    ungriddedUBound=(/lsoil_input/), rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
 
- ! print*,"- CALL FieldCreate FOR INPUT GRID LANDSEA MASK."
-!  landsea_mask_input_grid = ESMF_FieldCreate(input_grid, &
-!                                      typekind=ESMF_TYPEKIND_R8, &
-!                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID Z0."
-!  z0_input_grid = ESMF_FieldCreate(input_grid, &
-!                                      typekind=ESMF_TYPEKIND_R8, &
-!                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID VEGETATION TYPE."
-!  veg_type_input_grid = ESMF_FieldCreate(input_grid, &
-!                                      typekind=ESMF_TYPEKIND_R8, &
-!                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID CANOPY MOISTURE CONTENT."
-!  canopy_mc_input_grid = ESMF_FieldCreate(input_grid, &
-!                                      typekind=ESMF_TYPEKIND_R8, &
-!                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID SEAICE FRACTION."
-!  seaice_fract_input_grid = ESMF_FieldCreate(input_grid, &
-!                                      typekind=ESMF_TYPEKIND_R8, &
-!                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID SEAICE DEPTH."
-!  seaice_depth_input_grid = ESMF_FieldCreate(input_grid, &
-!                                      typekind=ESMF_TYPEKIND_R8, &
-!                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID SEAICE SKIN TEMPERATURE."
-!  seaice_skin_temp_input_grid = ESMF_FieldCreate(input_grid, &
-!                                      typekind=ESMF_TYPEKIND_R8, &
-!                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID SNOW DEPTH."
-!  snow_depth_input_grid = ESMF_FieldCreate(input_grid, &
-!                                      typekind=ESMF_TYPEKIND_R8, &
-!                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID SNOW LIQUID EQUIVALENT."
-!  snow_liq_equiv_input_grid = ESMF_FieldCreate(input_grid, &
-!                                      typekind=ESMF_TYPEKIND_R8, &
-!                                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID T2M."
-!  t2m_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID Q2M."
-!  q2m_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID TPRCP."
-!  tprcp_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID F10M."
-!  f10m_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID USTAR."
-!  ustar_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID FFMM."
-!  ffmm_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT GRID SRFLAG."
-!  srflag_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT SKIN TEMPERATURE."
-!  skin_temp_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT SOIL TYPE."
-!  soil_type_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT TERRAIN."
-!  terrain_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT SOIL TEMPERATURE."
-!  soil_temp_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, &
-!                                    ungriddedLBound=(/1/), &
-!                                    ungriddedUBound=(/lsoil_input/), rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT TOTAL SOIL MOISTURE."
-!  soilm_tot_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, &
-!                                    ungriddedLBound=(/1/), &
-!                                    ungriddedUBound=(/lsoil_input/), rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  print*,"- CALL FieldCreate FOR INPUT LIQUID SOIL MOISTURE."
-!  soilm_liq_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, &
-!                                    ungriddedLBound=(/1/), &
-!                                    ungriddedUBound=(/lsoil_input/), rc=rc)
-!  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-! 
-!  if (.not. vgfrc_from_climo) then
-!    print*,"- CALL FieldCreate FOR INPUT VEGETATION GREENNESS."
-!    veg_greenness_input_grid = ESMF_FieldCreate(input_grid, &
-!                      typekind=ESMF_TYPEKIND_R8, &
-!                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!    if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-!     call error_handler("IN FieldCreate", rc)
-!  endif
-!  
-!  if (.not. minmax_vgfrc_from_climo) then
-!    print*,"- CALL FieldCreate FOR INPUT MIN VEGETATION GREENNESS."
-!    min_veg_greenness_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!    if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
-!     call error_handler("IN FieldCreate", rc)
-!     
-!     print*,"- CALL FieldCreate FOR INPUT MAX VEGETATION GREENNESS."
-!    max_veg_greenness_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!    if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
-!     call error_handler("IN FieldCreate", rc)
-!  endif
-!  
-!  if (.not. lai_from_climo) then
-!     print*,"- CALL FieldCreate FOR INPUT LEAF AREA INDEX."
-!    lai_input_grid = ESMF_FieldCreate(input_grid, &
-!                                    typekind=ESMF_TYPEKIND_R8, &
-!                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!    if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
-!     call error_handler("IN FieldCreate", rc)
-!  endif
-  call ESMF_GridGetCoord(input_grid, &
-                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
-                          coordDim=2, &
-                          farrayPtr=lat_src_ptr, rc=error)
-   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
-      call error_handler("IN GridGetCoord", error)
- print*, "in read_input_sfc 2", minval(lat_src_ptr), maxval(lat_src_ptr)
- nullify(lat_src_ptr)
-!-------------------------------------------------------------------------------
-! Read the tiled 'warm' restart files.
+  print*,"- CALL FieldCreate FOR INPUT TOTAL SOIL MOISTURE."
+  soilm_tot_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, &
+                                    ungriddedLBound=(/1/), &
+                                    ungriddedUBound=(/lsoil_input/), rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+
+  print*,"- CALL FieldCreate FOR INPUT LIQUID SOIL MOISTURE."
+  soilm_liq_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, &
+                                    ungriddedLBound=(/1/), &
+                                    ungriddedUBound=(/lsoil_input/), rc=rc)
+  if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+ 
+  if (.not. vgfrc_from_climo) then
+    print*,"- CALL FieldCreate FOR INPUT VEGETATION GREENNESS."
+    veg_greenness_input_grid = ESMF_FieldCreate(input_grid, &
+                      typekind=ESMF_TYPEKIND_R8, &
+                      staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+    if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+     call error_handler("IN FieldCreate", rc)
+  endif
+  
+  if (.not. minmax_vgfrc_from_climo) then
+    print*,"- CALL FieldCreate FOR INPUT MIN VEGETATION GREENNESS."
+    min_veg_greenness_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+    if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+     call error_handler("IN FieldCreate", rc)
+     
+     print*,"- CALL FieldCreate FOR INPUT MAX VEGETATION GREENNESS."
+    max_veg_greenness_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+    if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+     call error_handler("IN FieldCreate", rc)
+  endif
+  
+  if (.not. lai_from_climo) then
+     print*,"- CALL FieldCreate FOR INPUT LEAF AREA INDEX."
+    lai_input_grid = ESMF_FieldCreate(input_grid, &
+                                    typekind=ESMF_TYPEKIND_R8, &
+                                    staggerloc=ESMF_STAGGERLOC_CENTER, rc=rc)
+    if(ESMF_logFoundError(rcToCheck=rc,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
+     call error_handler("IN FieldCreate", rc)
+  endif
 !-------------------------------------------------------------------------------
 
  if (trim(input_type) == "restart") then
@@ -5693,15 +5674,6 @@ if (localpet == 0) then
  real(esmf_kind_r8), allocatable :: data_one_tile_3d(:,:,:)
  real(esmf_kind_r8), pointer :: lat_src_ptr(:,:)
 
- call ESMF_GridGetCoord(input_grid, &
-                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
-                          coordDim=2, &
-                          farrayPtr=lat_src_ptr, rc=error)
-   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
-      call error_handler("IN GridGetCoord", error)
- print*, "in read", minval(lat_src_ptr), maxval(lat_src_ptr)
- nullify(lat_src_ptr)
-
 !---------------------------------------------------------------------------
 ! Get i/j dimensions and number of soil layers from first surface file.
 ! Do dimensions match those from the orography file?
@@ -5790,6 +5762,23 @@ if (localpet == 0) then
     call read_fv3_grid_data_netcdf('soill4', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,4) = data_one_tile
+    if (lsoil_input .eq. 9) then
+     call read_fv3_grid_data_netcdf('soill5', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,5) = data_one_tile
+     call read_fv3_grid_data_netcdf('soill6', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,6) = data_one_tile
+     call read_fv3_grid_data_netcdf('soill7', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,7) = data_one_tile
+     call read_fv3_grid_data_netcdf('soill8', tile_read, i_input, j_input, &
+                                   lsoil_input, sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,8) = data_one_tile
+     call read_fv3_grid_data_netcdf('soill9', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,9) = data_one_tile
+    endif
   endif
 
   print*,"- CALL FieldScatter FOR INPUT LIQUID SOIL MOISTURE."
@@ -5812,6 +5801,23 @@ if (localpet == 0) then
     call read_fv3_grid_data_netcdf('soilw4', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,4) = data_one_tile
+    if (lsoil_input .eq. 9) then
+     call read_fv3_grid_data_netcdf('soilw5', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,5) = data_one_tile
+     call read_fv3_grid_data_netcdf('soilw6', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,6) = data_one_tile
+     call read_fv3_grid_data_netcdf('soilw7', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,7) = data_one_tile
+     call read_fv3_grid_data_netcdf('soilw8', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,8) = data_one_tile
+     call read_fv3_grid_data_netcdf('soilw9', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,9) = data_one_tile
+    endif
   endif
 
   print*,"- CALL FieldScatter FOR INPUT TOTAL SOIL MOISTURE."
@@ -5834,6 +5840,23 @@ if (localpet == 0) then
     call read_fv3_grid_data_netcdf('soilt4', tile_read, i_input, j_input, &
                                    lsoil_input, sfcdata=data_one_tile, write_file=the_file)
     data_one_tile_3d(:,:,4) = data_one_tile
+    if (lsoil_input .eq. 9) then
+     call read_fv3_grid_data_netcdf('soilt5', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,5) = data_one_tile
+     call read_fv3_grid_data_netcdf('soilt6', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,6) = data_one_tile
+     call read_fv3_grid_data_netcdf('soilt7', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,7) = data_one_tile
+     call read_fv3_grid_data_netcdf('soilt8', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,8) = data_one_tile
+     call read_fv3_grid_data_netcdf('soilt9', tile_read, i_input, j_input, &
+                                   lsoil_input,sfcdata=data_one_tile,write_file=the_file)
+     data_one_tile_3d(:,:,9) = data_one_tile
+    endif
   endif
 
   print*,"- CALL FieldScatter FOR INPUT SOIL TEMPERATURE."

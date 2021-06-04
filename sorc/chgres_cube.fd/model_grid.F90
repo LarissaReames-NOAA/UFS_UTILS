@@ -1302,24 +1302,12 @@ print*,"- CALL FieldScatter FOR INPUT GRID LONGITUDE."
    call get_cell_corners(real(latitude_one_tile,esmf_kind_r8), &
             real(longitude_one_tile, esmf_kind_r8), &
             lat_src_ptr, lon_src_ptr, dx, clb, cub)
-   print*, minval(lat_src_ptr), maxval(lat_src_ptr)   
-   print*, minval(lon_src_ptr), maxval(lon_src_ptr) 
  endif
  
- deallocate(lon_src_ptr)
  nullify(lat_src_ptr)
+ nullify(lon_src_ptr)
  deallocate(longitude_one_tile)
  deallocate(latitude_one_tile)
- call ESMF_GridGetCoord(input_grid, &
-                          staggerLoc=ESMF_STAGGERLOC_CORNER, &
-                          coordDim=2, &
-                          computationalLBound=clb, &
-                          computationalUBound=cub, &
-                          farrayPtr=lat_src_ptr, rc=error)
-   if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__))&
-      call error_handler("IN GridGetCoord", error)
- print*, minval(lat_src_ptr), maxval(lat_src_ptr)
- deallocate(lat_src_ptr)
  error=nf90_close(ncid)
  
  end subroutine define_input_grid_fv3_write

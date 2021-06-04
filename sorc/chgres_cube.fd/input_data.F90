@@ -2989,6 +2989,10 @@ else
  
  end subroutine read_input_atm_grib2_file
 
+!> Read input grid atmospheric data from fv3 write component output.
+!!
+!! @param[in] localpet  ESMF local persistent execution thread
+!! @author Larissa Reames OU CIMMS/ NOAA NSSL
 subroutine read_input_atm_fv3_write_file(localpet)
 
  implicit none

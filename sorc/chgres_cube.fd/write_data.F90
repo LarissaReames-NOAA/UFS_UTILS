@@ -296,21 +296,21 @@
                              (/dim_halo, dim_lat, dim_lev/), id_t_left)
    call netcdf_err(error, 'DEFINING T_LEFT')
 
-   error = nf90_def_var(ncid, 'w_bottom', NF90_FLOAT, &
-                             (/dim_lon, dim_halo, dim_lev/), id_w_bottom)
-   call netcdf_err(error, 'DEFINING W_BOTTOM')
-
-   error = nf90_def_var(ncid, 'w_top', NF90_FLOAT, &
-                             (/dim_lon, dim_halo, dim_lev/), id_w_top)
-   call netcdf_err(error, 'DEFINING W_TOP')
-
-   error = nf90_def_var(ncid, 'w_right', NF90_FLOAT, &
-                             (/dim_halo, dim_lat, dim_lev/), id_w_right)
-   call netcdf_err(error, 'DEFINING W_RIGHT')
-
-   error = nf90_def_var(ncid, 'w_left', NF90_FLOAT, &
-                             (/dim_halo, dim_lat, dim_lev/), id_w_left)
-   call netcdf_err(error, 'DEFINING W_LEFT')
+!   error = nf90_def_var(ncid, 'w_bottom', NF90_FLOAT, &
+!                             (/dim_lon, dim_halo, dim_lev/), id_w_bottom)
+!   call netcdf_err(error, 'DEFINING W_BOTTOM')
+!
+!   error = nf90_def_var(ncid, 'w_top', NF90_FLOAT, &
+!                             (/dim_lon, dim_halo, dim_lev/), id_w_top)
+!   call netcdf_err(error, 'DEFINING W_TOP')
+!
+!   error = nf90_def_var(ncid, 'w_right', NF90_FLOAT, &
+!                             (/dim_halo, dim_lat, dim_lev/), id_w_right)
+!   call netcdf_err(error, 'DEFINING W_RIGHT')
+!
+!   error = nf90_def_var(ncid, 'w_left', NF90_FLOAT, &
+!                             (/dim_halo, dim_lat, dim_lev/), id_w_left)
+!   call netcdf_err(error, 'DEFINING W_LEFT')
 
    error = nf90_def_var(ncid, 'zh_bottom', NF90_FLOAT, &
                              (/dim_lon, dim_halo, dim_levp1/), id_zh_bottom)
@@ -762,29 +762,29 @@
 
 ! Vertical velocity
 
- print*,"- CALL FieldGather FOR TARGET GRID W FOR TILE: ", tile
- call ESMF_FieldGather(dzdt_target_grid, data_one_tile_3d, rootPet=0, tile=tile, rc=error)
- if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
-      call error_handler("IN FieldGather", error)
-
- if (localpet == 0) then
-   dum3d_top(:,:,:) = data_one_tile_3d(i_start_top:i_end_top,j_start_top:j_end_top,:)
-   dum3d_top(:,:,1:lev_target) = dum3d_top(:,:,lev_target:1:-1) 
-   error = nf90_put_var( ncid, id_w_top, dum3d_top)
-   call netcdf_err(error, 'WRITING W TOP' )
-   dum3d_bottom(:,:,:) = data_one_tile_3d(i_start_bottom:i_end_bottom,j_start_bottom:j_end_bottom,:)
-   dum3d_bottom(:,:,1:lev_target) = dum3d_bottom(:,:,lev_target:1:-1) 
-   error = nf90_put_var( ncid, id_w_bottom, dum3d_bottom)
-   call netcdf_err(error, 'WRITING W BOTTOM' )
-   dum3d_left(:,:,:) = data_one_tile_3d(i_start_left:i_end_left,j_start_left:j_end_left,:)
-   dum3d_left(:,:,1:lev_target) = dum3d_left(:,:,lev_target:1:-1) 
-   error = nf90_put_var( ncid, id_w_left, dum3d_left)
-   call netcdf_err(error, 'WRITING W LEFT' )
-   dum3d_right(:,:,:) = data_one_tile_3d(i_start_right:i_end_right,j_start_right:j_end_right,:)
-   dum3d_right(:,:,1:lev_target) = dum3d_right(:,:,lev_target:1:-1) 
-   error = nf90_put_var( ncid, id_w_right, dum3d_right)
-   call netcdf_err(error, 'WRITING W RIGHT' )
- endif
+! print*,"- CALL FieldGather FOR TARGET GRID W FOR TILE: ", tile
+! call ESMF_FieldGather(dzdt_target_grid, data_one_tile_3d, rootPet=0, tile=tile, rc=error)
+! if(ESMF_logFoundError(rcToCheck=error,msg=ESMF_LOGERR_PASSTHRU,line=__LINE__,file=__FILE__)) &
+!      call error_handler("IN FieldGather", error)
+!
+! if (localpet == 0) then
+!   dum3d_top(:,:,:) = data_one_tile_3d(i_start_top:i_end_top,j_start_top:j_end_top,:)
+!   dum3d_top(:,:,1:lev_target) = dum3d_top(:,:,lev_target:1:-1) 
+!   error = nf90_put_var( ncid, id_w_top, dum3d_top)
+!   call netcdf_err(error, 'WRITING W TOP' )
+!   dum3d_bottom(:,:,:) = data_one_tile_3d(i_start_bottom:i_end_bottom,j_start_bottom:j_end_bottom,:)
+!   dum3d_bottom(:,:,1:lev_target) = dum3d_bottom(:,:,lev_target:1:-1) 
+!   error = nf90_put_var( ncid, id_w_bottom, dum3d_bottom)
+!   call netcdf_err(error, 'WRITING W BOTTOM' )
+!   dum3d_left(:,:,:) = data_one_tile_3d(i_start_left:i_end_left,j_start_left:j_end_left,:)
+!   dum3d_left(:,:,1:lev_target) = dum3d_left(:,:,lev_target:1:-1) 
+!   error = nf90_put_var( ncid, id_w_left, dum3d_left)
+!   call netcdf_err(error, 'WRITING W LEFT' )
+!   dum3d_right(:,:,:) = data_one_tile_3d(i_start_right:i_end_right,j_start_right:j_end_right,:)
+!   dum3d_right(:,:,1:lev_target) = dum3d_right(:,:,lev_target:1:-1) 
+!   error = nf90_put_var( ncid, id_w_right, dum3d_right)
+!   call netcdf_err(error, 'WRITING W RIGHT' )
+! endif
 
 ! Temperature
 

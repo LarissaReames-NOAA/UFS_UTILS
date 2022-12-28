@@ -30,6 +30,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        esmf_version: [8_2_0, 8.3.0, 8.4.0]
         bacio_version: [2.4.1]
         g2_version: [3.4.3]
         sp_version: [2.3.3]
@@ -46,22 +47,31 @@ jobs:
         sudo apt-get update
         sudo apt-get install libpng-dev zlib1g-dev libjpeg-dev libmpich-dev
         sudo apt-get install libnetcdf-dev libnetcdff-dev netcdf-bin pkg-config
-
-    - name: cache-esmf
+        sudo apt-get install autoconf automake libtool
+        
+    - name: checkout-esmf
       id: cache-esmf
       uses: actions/cache@v2
       with:
         path: ~/esmf
-        key: Linux_versions-esmf-8.2.0-${{ runner.os }}3
+        key: Linux_versions-esmf-${{ matrix.esmf_version }}-${{ runner.os }}
 
     - name: build-esmf
       if: steps.cache-esmf.outputs.cache-hit != 'true'
       run: |
         pushd ~
-        export ESMF_DIR=~/esmf-ESMF_8_2_0
-        wget https://github.com/esmf-org/esmf/archive/ESMF_8_2_0.tar.gz &> /dev/null
-        tar zxf ESMF_8_2_0.tar.gz
-        cd esmf-ESMF_8_2_0
+        if [[ ${{ matrix.esmf_version }} == "8_2_0" ]]; then
+          wget https://github.com/esmf-org/esmf/archive/ESMF_${{ matrix.esmf_version }}.tar.gz &> /dev/null
+          tar zxf ESMF_${{ matrix.esmf_version }}.tar.gz
+          cd esmf-ESMF_${{ matrix.esmf_version }}
+          export ESMF_DIR=~/esmf-ESMF_${{ matrix.esmf_version }}
+        else
+          wget https://github.com/esmf-org/esmf/archive/refs/tags/v${{ matrix.esmf_version }}.tar.gz &> /dev/null
+          ls -l
+          tar zxf v${{ matrix.esmf_version }}.tar.gz          
+          cd esmf-${{ matrix.esmf_version }}
+          export ESMF_DIR=~/esmf-${{ matrix.esmf_version }}
+        fi
         export ESMF_COMM=mpich3
         export ESMF_INSTALL_BINDIR=bin
         export ESMF_INSTALL_LIBDIR=lib
@@ -71,6 +81,9 @@ jobs:
         export ESMF_NETCDF=split
         export ESMF_NETCDF_INCLUDE=/usr/include
         export ESMF_NETCDF_LIBPATH=/usr/x86_64-linux-gnu
+        export ESMF_PIO=OFF
+        export ESMF_MOAB=OFF
+        export ESMF_ARRAY_LITE=TRUE
         make -j2
         make install
 
@@ -368,8 +381,3 @@ jobs:
         cp ufs_utils/tests/emcsfc_snow2mdl/data/* ~/data
         cp ufs_utils/tests/chgres_cube/data/* ~/data
         ls -l ~/data
-        
-        
-
-
-

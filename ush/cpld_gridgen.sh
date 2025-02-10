@@ -11,8 +11,6 @@ function edit_namelist {
 	-e "s/TOPOGFILE/$TOPOGFILE/g" \
 	-e "s/EDITSFILE/$EDITSFILE/g" \
 	-e "s/RESNAME/$RESNAME/g" \
-	-e "s/MOSAICRES/$MOSAICRES/g" \
-	-e "s/NPX/$NPX/g" \
 	-e "s/DO_MASKEDIT/$MASKEDIT/g" \
 	-e "s/DO_DEBUG/$DEBUG/g" \
 	-e "s/DO_POSTWGTS/$DO_POSTWGTS/g"
@@ -22,25 +20,7 @@ export RESNAME=${RESNAME:-$1}
 export DEBUG=.false.
 export MASKEDIT=.false.
 export DO_POSTWGTS=.true.
-export OUTDIR_PATH=${OUTDIR_PATH:-/scratch1/NCEPDEV/climate/Denise.Worthen/grids-20220116}
 export MOSAICDIR_PATH=${MOSAICDIR_PATH:-$PATHTR/fix/orog}
-if [[ $MOSAICRES == C3072 ]]; then
-    export NPX=3072
-elif [[ $MOSAICRES == C1152 ]]; then
-    export NPX=1152
-elif [[ $MOSAICRES == C768 ]]; then
-    export NPX=768
-elif [[ $MOSAICRES == C384 ]]; then
-    export NPX=384
-elif [[ $MOSAICRES == C192 ]]; then
-  export NPX=192
-elif [[ $MOSAICRES == C096 ]]; then
-  export MOSAICRES=C96
-  export NPX=96
-elif [[ $MOSAICRES == C048 ]]; then
-  export MOSAICRES=C48
-  export NPX=48
-fi
 export FIXDIR_PATH=${MOM6_FIXDIR}/${RESNAME}
 
 APRUN=${APRUN:-"srun"}

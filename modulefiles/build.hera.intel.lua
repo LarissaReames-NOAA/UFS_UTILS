@@ -5,7 +5,7 @@ Load environment to compile UFS_UTILS on Hera using Intel
 hpss_ver=os.getenv("hpss_ver") or ""
 load(pathJoin("hpss", hpss_ver))
 
-prepend_path("MODULEPATH", "/scratch1/NCEPDEV/nems/role.epic/spack-stack/spack-stack-1.6.0/envs/unified-env-rocky8/install/modulefiles/Core")
+prepend_path("MODULEPATH", "/scratch1/NCEPDEV/nems/role.epic/spack-stack/spack-stack-1.7.0/envs/ue-intel/install/modulefiles/Core")
 
 stack_intel_ver=os.getenv("stack_intel_ver") or "2021.5.0"
 load(pathJoin("stack-intel", stack_intel_ver))
@@ -19,10 +19,13 @@ load(pathJoin("cmake", cmake_ver))
 bacio_ver=os.getenv("bacio_ver") or "2.4.1"
 load(pathJoin("bacio", bacio_ver))
 
-g2_ver=os.getenv("g2_ver") or "3.4.5"
+g2_ver=os.getenv("g2_ver") or "3.4.9"
 load(pathJoin("g2", g2_ver))
+--!prepend_path("MODULEPATH","/scratch1/BMC/gsd-fv3/Larissa.Reames/modulefiles")
+--load("g2.dev")
+--load("g2c.dev")
 
-ip_ver=os.getenv("ip_ver") or "4.3.0"
+ip_ver=os.getenv("ip_ver") or "5.0.0"
 load(pathJoin("ip", ip_ver))
 
 nemsio_ver=os.getenv("nemsio_ver") or "2.5.4"
@@ -41,8 +44,8 @@ load(pathJoin("w3emc", w3emc_ver))
 sigio_ver=os.getenv("sigio_ver") or "2.3.2"
 load(pathJoin("sigio", sigio_ver))
 
-zlib_ver=os.getenv("zlib_ver") or "1.2.13"
-load(pathJoin("zlib", zlib_ver))
+--zlib_ver=os.getenv("zlib_ver") or "1.2.13"
+--load(pathJoin("zlib", zlib_ver))
 
 png_ver=os.getenv("png_ver") or "1.6.37"
 load(pathJoin("libpng", png_ver))
@@ -59,7 +62,7 @@ load(pathJoin("nccmp", nccmp_ver))
 esmf_ver=os.getenv("esmf_ver") or "8.6.0"
 load(pathJoin("esmf", esmf_ver))
 
-nco_ver=os.getenv("nco_ver") or "5.0.6"
+nco_ver=os.getenv("nco_ver") or "5.1.6"
 load(pathJoin("nco", nco_ver))
 
 whatis("Description: UFS_UTILS build environment")
